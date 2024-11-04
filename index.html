@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Keru Wang</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <h1>Keru Wang</h1>
+    </header>
+    <nav>
+        <a href="#about">About</a>
+        <a href="#projects">Projects</a>
+        <!-- <a href="#cv">CV</a> -->
+        <a href="" target="_blank">CV</a>
+
+    </nav>
+<!-- About Section -->
+    <div class="content" id="about">
+        <h2>About Me</h2>
+        <div class="about-section">
+            <div>
+                <img src="image/photo.jpg" alt="headshot" class="profile-photo">
+            </div>
+            <div class=icon-section>
+                <div class="icon-link">
+                    <img class="icons" src="image/icon_google_scholar.png" alt="Google Scholar Icon">
+                    <a class="hyperlinks" href="https://scholar.google.com/citations?user=-ZLfBEMAAAAJ&hl=en" target="_blank">Google Scholar</a>
+                </div>
+            
+                <div class="icon-link">
+                    <img class=icons src="image/icon_linkedin.png">
+                    <a class = hyperlinks href="https://www.linkedin.com/in/zhuw/" target="_blank">Linkedin</a>
+                </div>
+
+                <div class="icon-link">
+                    <img class="icons" src="image/icon_email.png" alt="Email Icon">
+                    <p class="email-text">keru dot wang at nyu dot edu</p>
+                </div>
+
+            </div>
+
+            <div class="about-text">
+                <p>I am a PhD candidate at NYU Courant proudly supervised by <a href="https://en.wikipedia.org/wiki/Ken_Perlin" target="_blank">prof. Ken Perlin</a>. I am passionate about prototyping the future of interaction and collaboration through mixed reality, computer graphics, multimodal interface design, and AI. With experience across art, technology, and perception studies, I excel in interdisciplinary collaboration and enjoy turning ideas into impactful, actionable research. My projects have led to demos and publications at premier conferences, including SIGGRAPH, UIST, VRST, TEI, and DIS.</p>
+                
+            </p>
+            </div>
+        </div>
+    </div>
+<!-- Projects Section -->
+    <div class="content" id="projects">
+        <h2>Selected Projects</h2>
+        <i>* equal advising &emsp;&emsp;  🏆 Best Paper Award</i>
+
+        <div class="project">
+            <div class="video-container">
+                <iframe class="project-video" width="320" height="240" src="https://www.youtube.com/embed/oAmVAYb8cIA?si=BMGqeypmVRdx6Kb6"></iframe>
+            </div>
+            <div class="project-details">
+                <b>🏆 Generative Terrain Authoring with Mid-air Hand Sketching in Virtual Reality</b>
+                <br>
+                <i>Yushen Hu, <b>Keru Wang</b>, Yuli Shao, Jan Plass, Zhu Wang*, Ken Perlin*
+                </i>
+                <br>
+                <p>We present a VR-based terrain generation system that uses hand gestures and a generative model for fast landscape prototyping. Users draw and modify mid-air strokes to outline shapes, and a Conditional GAN, trained on real terrains' height maps, generates realistic landscapes blending user input with training features.</p>
+                <div class="project-links">
+                    <a href="https://dl.acm.org/doi/10.1145/3641825.3687736" target="_blank">🏆 ACM VRST 2024</a> | 
+                    <a href="pdf/terrainVR.pdf" target="_blank">PDF</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="project">
+            <div class="video-container">
+                <iframe class="project-video" width="320" height="240" src="https://www.youtube.com/embed/EjPgJE8A_fE?si=4zF_Y7x32GdMwmmx"></iframe>
+            </div>
+            <div class="project-details">
+                <b>A Collaborative Multimodal XR Physical Design Environment</b>
+                <br>
+                <i><b>Keru Wang</b>, Pincun Liu, Yushen Hu, Xiaoan Liu, Zhu Wang, Ken Perlin
+                </i>
+                <br>
+                <p>Our collaborative XR system integrates physical and virtual design spaces, superimposing visual modifications on physical objects via video passthrough. With multimodal inputs, real-time object tracking, and 3D annotations, it accelerates design iterations for digital prototyping.</p>
+                <div class="project-links">
+                    <!-- <a href="https://dl.acm.org/doi/10.1145/3641825.3687736" target="_blank">🏆 ACM VRST 2024</a> | 
+                    <a href="pdf/terrainVR.pdf" target="_blank">PDF</a> -->
+                    <i>ACM Siggraph Asia XR Demo 2024 (will be publicly available in Dec 2024)</i>
+                </div>
+            </div>
+        </div>
+
+        <div class="project">
+            <div class="video-container">
+                <iframe class="project-video" width="320" height="240" src="https://www.youtube.com/embed/L0QmnD0Gl48"></iframe>
+            </div>
+            <div class="project-details">
+                <b>“Push-That-There”: Tabletop Multi-robot Object Manipulation via Multimodal 'Object-level Instruction'</b>
+                <br>
+                <i><b>Keru Wang</b>, Zhu Wang, Ken Nakagaki, Ken Perlin</i>
+                <br>
+                <p>The system lets users intuitively use <i>'object-level' instructions</i> to control a multi-robot setup to manipulate tabletop objects via gestures, GUI, tangible inputs, and speech. Robots collectively execute commands through a generalizable algorithm, enabling high-level, object-focused multimodal interactions.</p>
+                <div class="project-links">
+                    <a href="https://dl.acm.org/doi/abs/10.1145/3643834.3661542" target="_blank">ACM DIS 2024</a> | 
+                    <a href="pdf/push-that-there.pdf" target="_blank">PDF</a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="project">
+            <div class="thumbnail-container">
+                <img src="image/gallery_setup.png" alt="Project Thumbnail" class="project-thumbnail">
+            </div>
+            <div class="project-details">
+                <b>A Spatial Audio System for Co-Located Multi-Participant Extended Reality Experiences</b>
+                <br>
+                <i>Yi Wu, Agnieszka Roginska, <b>Keru Wang</b>, Zhu Wang, Ken Perlin</i>
+                <br>
+                <p>This paper presents the ongoing development of a spatial audio system for co-located, multi-participant, extended reality (CMXR) experiences. By integrating spatial audio and informative auditory displays, the system can enhance the sense of immersion and presence among participants and facilitate collaboration.</p>
+                <div class="project-links">
+                    <a href="https://icad2024.icad.org/wp-content/uploads/2024/06/ICAD_2024_paper_28.pdf" target="_blank">ICAD 2024</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="project">
+            <div class="video-container">
+                <iframe class="project-video" width="320" height="240" src="https://www.youtube.com/embed/269bo-XhcDg"></iframe>
+            </div>
+            <div class="project-details">
+                <b>Asymmetrical VR for Education</b>
+                <br>
+                <i><b>Keru Wang</b>, Zhu Wang, Ken Perlin</i>
+                <br>
+                <p>We developed a system that allows non-VR instructors to use hand-held devices, like smartphones and tablets, to explore VR content and interact with fully immersed students. Instructors can observe the VR environment, switch between students’ views, and interact within the VR world, while students view real-time video streams of both the physical space and the instructor.</p>
+                <div class="project-links">
+                    <a href="https://dl.acm.org/doi/abs/10.1145/3588027.3595600" target="_blank">ACM Siggraph Immersive Pavilion 2023</a> | 
+                    <a href="pdf/Asymmetrical-VR-for-Education.pdf" target="_blank">PDF</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="project">
+            <div class="video-container">
+                <iframe class="project-video" width="320" height="240" src="https://www.youtube.com/embed/ETO5zSpzQ3g"></iframe>
+            </div>
+            <div class="project-details">
+                <b>Mixed Reality Collaboration for Complementary Working Styles</b>
+                <br>
+                <i><b>Keru Wang</b>, Zhu Wang, Karl Rosenberg, Zhenyi He, Dong Woo Yoo, Un Joo Christopher, Ken Perlin</i>
+                <br>
+                <p>Our project combines immersive VR, multitouch AR, real-time volumetric capture, motion capture, robotically-actuated tangible interfaces at multiple scales, and live coding, in service of a human-centric way of collaborating. </p>
+                <div class="project-links">
+                    <a href="https://dl.acm.org/doi/abs/10.1145/3532834.3536216" target="_blank">ACM Siggraph Immersive Pavilion 2022</a> | 
+                    <a href="pdf/Mixed-Reality-Collaboration-for-Complementary-Working-Styles.pdf" target="_blank">PDF</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="project">
+            <div class="video-container">
+                <iframe class="project-video" width="320" height="240" src="https://www.youtube.com/embed/6cyPh9jM6vQ?si=43oQ_xEMIP3Sl-uM"></iframe>
+            </div>
+            <div class="project-details">
+                <b>GazeChat: Enhancing Virtual Conferences with Gaze-aware 3D Photos</b>
+                <br>
+                <i>Zhenyi He, <b>Keru Wang</b>, Brandon Yushan Feng, Ruofei Du, Ken Perlin</i>
+                <br>
+                <p>GazeChat is a remote conferencing system that uses gaze-aware 3D profile photos to enrich online conversations. Through webcam-based gaze tracking and neural rendering, GazeChat redirects participants' gaze to accurately reflect who they’re looking at, enhancing communication and engagement.</p>
+                <div class="project-links">
+                    <a href="https://dl.acm.org/doi/10.1145/3472749.3474785" target="_blank">ACM UIST 2021</a> |
+                    <a href="pdf/gazeChat.pdf" target="_blank">PDF</a>
+                </div>
+            </div>
+        </div>
+        <!-- Add more projects as needed -->
+    </div>
+
+<!-- CV section -->
+    <!-- <div class="content" id="cv">
+        <h2>CV</h2>
+        <p></p>
+            <a href="https://github.com/your-github">GitHub</a>
+            <a href="mailto:your-email@example.com">Email</a>
+    </div> -->
+
+    <footer>
+        <p>&copy; 2024 Keru Wang. All rights reserved.</p>
+    </footer>
+</body>
+</html>
