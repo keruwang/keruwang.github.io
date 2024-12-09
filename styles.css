@@ -70,12 +70,14 @@ nav a:hover {
 
 .project {
     display: flex;
-    align-items: flex-start;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-start; /* Prevent overlap */
     margin-bottom: 2em;
     max-width: 900px;
     padding: 1.5em;
     border-top: 2px solid #ccc;
-    transition: box-shadow 0.3s ease;
+    box-sizing: border-box;
 }
 
 .project:hover {
@@ -83,28 +85,35 @@ nav a:hover {
 }
 
 .video-container, .thumbnail-container {
-    width: 320px; /* Set container width */
-    height: 240px; /* Set container height */
-    margin-right: 1.5em;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 320px;
+    height: 320px; /* Ensure square dimensions */
+    position: relative;
     overflow: hidden;
     border-radius: 8px; /* Rounded corners */
-    background-color: #fff;
-    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1); /* Soft shadow */
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+    background-color: #000; /* Video placeholder color */
 }
 
 .project-video, .project-thumbnail {
     width: 100%;
     height: 100%;
     object-fit: cover;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    border-radius: 8px; /* Match thumbnail styling */
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
 }
 
 .project-details {
     flex-grow: 1;
     max-width: calc(100% - 360px);
     padding: 1em;
+    box-sizing: border-box;
 }
 
 .project-links {
