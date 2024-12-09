@@ -109,11 +109,23 @@ nav a:hover {
     box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
 }
 
-.project-details {
+/* .project-details {
     flex-grow: 1;
     max-width: calc(100% - 360px);
     padding: 1em;
-    box-sizing: border-box;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    white-space: normal;
+    hyphens: auto;
+} */
+
+.project-details {
+    flex: 1;
+    min-width: 300px;
+    padding: 1em;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    white-space: normal;
 }
 
 .project-links {
