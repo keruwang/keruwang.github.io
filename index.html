@@ -4,278 +4,267 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Keru Wang</title>
-    <link rel="stylesheet" href="styles.css">
+    <meta name="description" content="Keru Wang — Computer Science Ph.D. candidate at NYU working on proactive multimodal agents, human–AI interaction, and mixed reality.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400;1,700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css?v=5">
 </head>
 <body>
-    <header>
-        <h1>Keru Wang</h1>
-    </header>
-    <nav>
+
+    <nav class="side-nav" aria-label="Sections">
+        <a class="nav-name" href="#top">Keru Wang</a>
         <a href="#about">About</a>
         <a href="#projects">Projects</a>
-        <!-- <a href="#cv">CV</a> -->
         <a href="pdf/CV.pdf" target="_blank">CV</a>
-
+        <a href="https://scholar.google.com/citations?user=-ZLfBEMAAAAJ&hl=en" target="_blank">Scholar</a>
     </nav>
-<!-- About Section -->
-    <div class="content" id="about">
-        <h2>About Me</h2>
-        <div class="about-section">
+
+    <!-- Hero -->
+    <header class="hero" id="top">
+        <video class="hero-video" autoplay muted loop playsinline preload="metadata" poster="image/hero-poster.jpg?v=7" aria-hidden="true">
+            <source src="video/hero-reel.mp4?v=7" type="video/mp4">
+        </video>
+        <div class="hero-inner">
+            <h1>Keru Wang</h1>
+            <p class="tagline"><span class="nowrap">Ph.D. Candidate @ NYU Computer Science</span> &nbsp;·&nbsp; <span class="nowrap">Human–AI Interaction</span> &nbsp;·&nbsp; <span class="nowrap">Mixed Reality</span></p>
+        </div>
+    </header>
+
+    <!-- About -->
+    <section class="section" id="about">
+        <h2 class="section-title">About</h2>
+        <div class="about">
             <div>
-                <img src="image/photo.jpg" alt="headshot" class="profile-photo">
+                <img src="image/photo.jpg" alt="Keru Wang" class="profile-photo">
+                <ul class="profile-links">
+                    <li><img src="image/icon_google_scholar.png" alt=""><a href="https://scholar.google.com/citations?user=-ZLfBEMAAAAJ&hl=en" target="_blank">Google Scholar</a></li>
+                    <li><img src="image/icon_linkedin.png" alt=""><a href="https://www.linkedin.com/in/keru-wang-51aa58175" target="_blank">LinkedIn</a></li>
+                    <li><img src="image/icon_email.png" alt=""><span>keru dot wang at nyu dot edu</span></li>
+                </ul>
             </div>
-            <div class=icon-section>
-                <div class="icon-link">
-                    <img class="icons" src="image/icon_google_scholar.png" alt="Google Scholar Icon">
-                    <a class="hyperlinks" href="https://scholar.google.com/citations?user=-ZLfBEMAAAAJ&hl=en" target="_blank">Google Scholar</a>
-                </div>
-            
-                <div class="icon-link">
-                    <img class=icons src="image/icon_linkedin.png">
-                    <a class = hyperlinks href="https://www.linkedin.com/in/keru-wang-51aa58175" target="_blank">Linkedin</a>
-                </div>
-
-                <div class="icon-link">
-                    <img class="icons" src="image/icon_email.png" alt="Email Icon">
-                    <p class="email-text">keru dot wang at nyu dot edu</p>
-                </div>
-
-            </div>
-
             <div class="about-text">
-                <p>I am a 4th-year PhD candidate at NYU Courant proudly supervised by <a href="https://en.wikipedia.org/wiki/Ken_Perlin" target="_blank">prof. Ken Perlin</a>. My research interests evolves from mixed reality and multimodal interaction design toward human–AI collaboration and understanding alignment. My current work investigates proactive AI agents that interpret user needs from interaction context. I envision a future where intelligent systems share mutual understanding with humans and engage as collaborative partners rather than passive tools.
-
-                    Building on my background in mixed reality, AI, robotics, and mixed-method research, I bring strong skills in prototyping and evaluating interactive systems. My work has led to demos and publications at top-tier venues including SIGGRAPH, UIST, VRST, TEI, and DIS.</p>
-                
-            </p>
+                <p>I am a fifth-year Computer Science Ph.D. candidate in the <a href="https://frl.nyu.edu/" target="_blank">Future Reality Lab</a> at NYU, advised by <a href="https://en.wikipedia.org/wiki/Ken_Perlin" target="_blank">Prof. Ken Perlin</a>. I study how interactive systems can help people think, create, and work together.</p>
+                <p>With AI, I build proactive multimodal agents that understand people in context: inferring an individual's latent, evolving intent, and supporting groups through creativity support and by connecting fragmented knowledge across members.</p>
+                <p>In mixed reality, I build collaborative XR environments, generative 3D authoring tools, and robotic and shape-changing interfaces for physical interaction.</p>
+                <p>My work has been published and demoed at UIST, DIS, VRST (Best Paper Award), SIGGRAPH, TEI, and ICRA. I have also been a research intern at <a href="https://www.microsoft.com/en-us/research/" target="_blank">Microsoft Research</a> in the Deep Learning Group, working with <a href="https://www.microsoft.com/en-us/research/people/abanburski/" target="_blank">Andrzej Banburski-Fahey</a> and <a href="https://www.microsoft.com/en-us/research/people/jojic/" target="_blank">Nebojsa Jojic</a>, and at the <a href="https://tangible.media.mit.edu/" target="_blank">MIT Media Lab</a> in <a href="https://en.wikipedia.org/wiki/Hiroshi_Ishii_(computer_scientist)" target="_blank">Hiroshi Ishii</a>'s Tangible Media Group.</p>
             </div>
+        </div>
+    </section>
+
+    <!-- Projects banner -->
+    <div class="banner" id="projects">
+        <div class="banner-inner">
+            <h2>Selected Projects</h2>
         </div>
     </div>
-<!-- Projects Section -->
-    <div class="content" id="projects">
-        <h2>Selected Projects</h2>
-        <i>* Equal Advising &emsp;&emsp;</i>  🏆 <i>Best Paper Award</i>
-        <div class="project">
-            <div class="thumbnail-container">
-                <img src="image/system-pipeline.png" alt="Project Thumbnail" class="project-thumbnail">
-            </div>
-            <div class="project-details">
-                <b>An Investigation of Proactive AI Agents for Reducing Idea Stagnation in Group Brainstorming</b>
-                <br>
-                <i><b>Keru Wang</b>, Pincun Liu, Saining Xie, Ken Perlin
-                </i>
-                <br>
-                <p>We designed a proactive AI agent that monitors group brainstorming and intervenes at opportune moments to counter idea stagnation. Through two user studies with 18 participants, we found that the proactive agent boosted idea generation, depth, and novelty compared to a reactive baseline, though users still preferred reactive support for its greater sense of control.</p>
-                <div class="project-links">
-                    <!-- <a href="https://www.researchgate.net/profile/Keru-Wang-3/publication/393882712_AUDIO-INFLUENCED_PSEUDO-HAPTICS_A_REVIEW_OF_EFFECTS_APPLICATIONS_AND_RESEARCH_DIRECTIONS/links/687e8ddb1a77b36b5b046f97/AUDIO-INFLUENCED-PSEUDO-HAPTICS-A-REVIEW-OF-EFFECTS-APPLICATIONS-AND-RESEARCH-DIRECTIONS.pdf" target="_blank">AM.ICAD 2025</a> | 
-                    <a href="pdf/Audio_Pseudo_haptics_Survey.pdf" target="_blank">PDF</a> -->
-                   <span style="color:#6b7280; font-style:italic;"> Under review at CSCW 2026 — preprint available upon request.</span>
-                </div>
-            </div>
-        </div>
-        <div class="project">
-            <div class="thumbnail-container">
-                <img src="image/intervention_time.png" alt="Project Thumbnail" class="project-thumbnail">
-            </div>
-            <div class="project-details">
-                <b>Should I Speak Up? Aligning Proactive AI Interventions with Human Expectations in Group Brainstormin</b>
-                <br>
-                <i><b>Keru Wang</b>, Pincun Liu, Saining Xie, Ken Perlin
-                </i>
-                <br>
-                <p>We explore how proactive AI agents can step in at the right moments to keep group brainstorming productive and natural. Using a custom LLM system that monitors discussions and explains its reasoning, we compared its timing judgement to expert evaluations. The study uncovers what makes AI interventions feel helpful versus disruptive, guiding the design of more intuitive and collaborative AI partners.</p>
-                <div class="project-links">
-                    <!-- <a href="https://www.researchgate.net/profile/Keru-Wang-3/publication/393882712_AUDIO-INFLUENCED_PSEUDO-HAPTICS_A_REVIEW_OF_EFFECTS_APPLICATIONS_AND_RESEARCH_DIRECTIONS/links/687e8ddb1a77b36b5b046f97/AUDIO-INFLUENCED-PSEUDO-HAPTICS-A-REVIEW-OF-EFFECTS-APPLICATIONS-AND-RESEARCH-DIRECTIONS.pdf" target="_blank">AM.ICAD 2025</a> | 
-                    <a href="pdf/Audio_Pseudo_haptics_Survey.pdf" target="_blank">PDF</a> -->
-                   <span style="color:#6b7280; font-style:italic;"> Under review at IUI 2026 — preprint available upon request.</span>
-                </div>
-            </div>
-        </div>
-        <div class="project">
-            <div class="thumbnail-container">
-                <img src="image/Drone-VR-Platform-updated.png" alt="Project Thumbnail" class="project-thumbnail">
-            </div>
-            <div class="project-details">
-                <b>Flying Together: Human-Guided Immersive Shared Control for Aerial Robot Teams in Unknown Environments</b>
-                <br>
-                <i>Lou De Bel-Air, Luca Morando, Ruitao Chen, <b>Keru Wang</b>, Benjamin Jarvis, Charbel Toumieh, Yang Zhou, Ken Perlin, Dario Floreano, Giuseppe Loianno
-                </i>
-                <br>
-                <p>We developed a VR-based shared control framework that allows operators to guide teams of drones in complex, unknown environments. A motion-primitive planner integrates real-time user input to generate collision-free trajectories, while an admittance controller enables flexible human influence. Experiments show that this immersive, human-in-the-loop approach enhances obstacle avoidance, coordination, and operator efficiency.</p>
-                <div class="project-links">
-                    <!-- <a href="https://www.researchgate.net/profile/Keru-Wang-3/publication/393882712_AUDIO-INFLUENCED_PSEUDO-HAPTICS_A_REVIEW_OF_EFFECTS_APPLICATIONS_AND_RESEARCH_DIRECTIONS/links/687e8ddb1a77b36b5b046f97/AUDIO-INFLUENCED-PSEUDO-HAPTICS-A-REVIEW-OF-EFFECTS-APPLICATIONS-AND-RESEARCH-DIRECTIONS.pdf" target="_blank">AM.ICAD 2025</a> | 
-                    <a href="pdf/Audio_Pseudo_haptics_Survey.pdf" target="_blank">PDF</a> -->
-                   <span style="color:#6b7280; font-style:italic;"> Under review at IEEE ICRA 2026 — preprint available upon request.</span>
-                </div>
-            </div>
-        </div>
-        <div class="project">
-              <div class="thumbnail-container">
-                <img src="image/audio-pseudo-haptics-heat-map.png" alt="Project Thumbnail" class="project-thumbnail">
-            </div>
-            <div class="project-details">
-                <b>Audio-influenced Pseudo-haptics: A Review of Effects, Applications, and Research Directions</b>
-                <br>
-                <i><b>Keru Wang</b>, Yi Wu, Pincun Liu, Zhu Wang, Agnieszka Roginska, Qi Sun, Ken Perlin
-                </i>
-                <br>
-                <p>This survey explores how auditory cues can evoke pseudo-haptic sensations, offering a cost-effective alternative to traditional haptic devices. We review existing research on audio-influenced pseudo-haptics, summarize mappings between sound and touch perception, and outline future opportunities for creating more immersive and accessible interactive systems.</p>
-                <div class="project-links">
-                    <a href="https://www.researchgate.net/profile/Keru-Wang-3/publication/393882712_AUDIO-INFLUENCED_PSEUDO-HAPTICS_A_REVIEW_OF_EFFECTS_APPLICATIONS_AND_RESEARCH_DIRECTIONS/links/687e8ddb1a77b36b5b046f97/AUDIO-INFLUENCED-PSEUDO-HAPTICS-A-REVIEW-OF-EFFECTS-APPLICATIONS-AND-RESEARCH-DIRECTIONS.pdf" target="_blank">AM.ICAD 2025</a> | 
-                    <a href="pdf/Audio_Pseudo_haptics_Survey.pdf" target="_blank">PDF</a>
-                </div>
-            </div>
-        </div>
-        <div class="project">
-            <div class="video-container">
-                <iframe class="project-video" width="320" height="240" src="https://www.youtube.com/embed/UfQBq2Kwe2Q?si=BF6JKOT-ueTTcBs3" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
-            </div>
-            <div class="project-details">
-                <b>Robotecture: A Modular Shape-changing Interface Using Actuated Support Beams</b>
-                <br>
-                <i>Yuhan Wang, <b>Keru Wang</b>, Zhu Wang*, Ken Perlin*
-                </i>
-                <br>
-                <p>Robotecture is a scalable, cost-efficient shape-changing system using modular actuated beams to create dynamic surfaces and enclosures. Its flexible, space-efficient design enables applications ranging from tabletop displays and smart storage systems to smart architecture.</p>
-                <div class="project-links">
-                    <a href="https://dl.acm.org/doi/abs/10.1145/3689050.3704925" target="_blank">ACM TEI 2025</a> | 
-                    <a href="pdf/RoboTerrain.pdf" target="_blank">PDF</a>
-                </div>
-            </div>
-        </div>
 
-        <div class="project">
-            <div class="video-container">
-                <iframe class="project-video" width="320" height="240" src="https://www.youtube.com/embed/oAmVAYb8cIA?si=BMGqeypmVRdx6Kb6" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
-            </div>
-            <div class="project-details">
-                <b>🏆 Generative Terrain Authoring with Mid-air Hand Sketching in Virtual Reality</b>
-                <br>
-                <i>Yushen Hu, <b>Keru Wang</b>, Yuli Shao, Jan Plass, Zhu Wang*, Ken Perlin*
-                </i>
-                <br>
-                <p>We present a VR-based terrain generation system that uses hand gestures and a generative model for fast landscape prototyping. Users draw and modify mid-air strokes to outline shapes, and a Conditional GAN, trained on real terrains' height maps, generates realistic landscapes blending user input with training features.</p>
-                <div class="project-links">
-                    <a href="https://dl.acm.org/doi/10.1145/3641825.3687736" target="_blank">🏆 ACM VRST 2024</a> | 
-                    <a href="pdf/terrainVR.pdf" target="_blank">PDF</a>
-                </div>
-            </div>
-        </div>
+    <section class="section">
+        <p class="legend">* Equal advising &emsp; 🏆 Best Paper Award</p>
 
-        <div class="project">
-            <div class="video-container">
-                <iframe class="project-video" width="320" height="240" src="https://www.youtube.com/embed/EjPgJE8A_fE?si=4zF_Y7x32GdMwmmx" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
-            </div>
-            <div class="project-details">
-                <b>A Collaborative Multimodal XR Physical Design Environment</b>
-                <br>
-                <i><b>Keru Wang</b>, Pincun Liu, Yushen Hu, Xiaoan Liu, Zhu Wang, Ken Perlin
-                </i>
-                <br>
-                <p>Our collaborative XR system integrates physical and virtual design spaces, superimposing visual modifications on physical objects via video passthrough. With multimodal inputs, real-time object tracking, and 3D annotations, it accelerates design iterations for digital prototyping.</p>
-                <div class="project-links">
-                    <a href="https://dl.acm.org/doi/full/10.1145/3681759.3688914" target="_blank">ACM SIGGRAPH ASIA XR Exhibition 2024</a> | 
-                    <a href="pdf/a-collaborative-multimodal-mr-physical-design-environment.pdf" target="_blank">PDF</a>
-                </div>
-            </div>
-        </div>
+        <!--
+            To add a project, copy one <article class="card"> block.
+            Image:  <div class="media"><img src="image/....png" alt="..."></div>
+                    (add class="media contain" to show the whole figure instead of cropping)
+            Video:  <div class="media" data-youtube="VIDEO_ID"><img src="https://i.ytimg.com/vi/VIDEO_ID/hqdefault.jpg" alt="..."><button aria-label="Play video"></button></div>
+        -->
+        <div class="grid">
 
-        <div class="project">
-            <div class="video-container">
-                <iframe class="project-video" width="320" height="240" src="https://www.youtube.com/embed/L0QmnD0Gl48" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
-            </div>
-            <div class="project-details">
-                <b>“Push-That-There”: Tabletop Multi-robot Object Manipulation via Multimodal 'Object-level Instruction'</b>
-                <br>
-                <i><b>Keru Wang</b>, Zhu Wang, Ken Nakagaki, Ken Perlin</i>
-                <br>
-                <p>The system lets users intuitively use <i>'object-level' instructions</i> to control a multi-robot setup to manipulate tabletop objects via gestures, GUI, tangible inputs, and speech. Robots collectively execute commands through a generalizable algorithm, enabling high-level, object-focused multimodal interactions.</p>
-                <div class="project-links">
-                    <a href="https://dl.acm.org/doi/abs/10.1145/3643834.3661542" target="_blank">ACM DIS 2024</a> | 
-                    <a href="pdf/push-that-there.pdf" target="_blank">PDF</a>
-                </div>
-            </div>
-        </div>
-        
-        <div class="project">
-            <div class="thumbnail-container">
-                <img src="image/gallery_setup.png" alt="Project Thumbnail" class="project-thumbnail">
-            </div>
-            <div class="project-details">
-                <b>A Spatial Audio System for Co-Located Multi-Participant Extended Reality Experiences</b>
-                <br>
-                <i>Yi Wu, Agnieszka Roginska, <b>Keru Wang</b>, Zhu Wang, Ken Perlin</i>
-                <br>
-                <p>This paper presents the ongoing development of a spatial audio system for co-located, multi-participant, extended reality (CMXR) experiences. By integrating spatial audio and informative auditory displays, the system can enhance the sense of immersion and presence among participants and facilitate collaboration.</p>
-                <div class="project-links">
-                    <a href="https://icad2024.icad.org/wp-content/uploads/2024/06/ICAD_2024_paper_28.pdf" target="_blank">ICAD 2024</a>
-                </div>
-            </div>
-        </div>
+            <article class="card">
+                <div class="media contain"><img src="image/seam-pipeline.jpg" alt="SEAM system pipeline: a post passes through a relationship layer and an executable layer over a shared memory, and the system composes a reply" loading="lazy"></div>
+                <h3>SEAM: Situated Executable Associative Memory for a Co-located Community</h3>
+                <p class="subtitle">A shared memory for a community that connects, reveals, and acts</p>
+                <p class="authors"><b>Keru Wang</b>, Michael Xu, Ken Perlin, Nebojsa Jojic, Andrzej Banburski-Fahey</p>
+                <p class="venue"><span class="status">Under review — preprint available upon request</span></p>
+                <details>
+                    <summary>Abstract</summary>
+                    <p>In a group, what each person knows sits apart from everyone else's, and whether those pieces ever meet depends on who happens to talk to whom. Taking inspiration from how a single mind works with memory, we built a shared memory that does the same for a community, prototyped as a social app. Members post everyday moments; LLM agents work out how fragments relate, distill knowledge about the group, and reply in a situated and associative way, while instructions embedded in posts shape how the system behaves. We deployed SEAM to 46 people in a co-located community with no task assigned and ran a follow-up workshop with 14. Members shared their days, questioned the memory about their community, and instructed it to track routines and run games, and its replies introduced them to people and subjects they had never encountered.</p>
+                </details>
+            </article>
 
-        <div class="project">
-            <div class="video-container">
-                <iframe class="project-video" width="320" height="240" src="https://www.youtube.com/embed/269bo-XhcDg" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
-            </div>
-            <div class="project-details">
-                <b>Asymmetrical VR for Education</b>
-                <br>
-                <i><b>Keru Wang</b>, Zhu Wang, Ken Perlin</i>
-                <br>
-                <p>We developed a system that allows non-VR instructors to use hand-held devices, like smartphones and tablets, to explore VR content and interact with fully immersed students. Instructors can observe the VR environment, switch between students’ views, and interact within the VR world, while students view real-time video streams of both the physical space and the instructor.</p>
-                <div class="project-links">
-                    <a href="https://dl.acm.org/doi/abs/10.1145/3588027.3595600" target="_blank">ACM Siggraph Immersive Pavilion 2023</a> | 
-                    <a href="pdf/Asymmetrical-VR-for-Education.pdf" target="_blank">PDF</a>
-                </div>
-            </div>
-        </div>
+            <article class="card">
+                <div class="media contain"><img src="image/system-pipeline.png" alt="System pipeline of the proactive brainstorming agent" loading="lazy"></div>
+                <h3>An Investigation of Proactive AI Agents for Reducing Idea Stagnation in Group Brainstorming</h3>
+                <p class="subtitle">A proactive agent that steps in when group ideation stalls</p>
+                <p class="authors"><b>Keru Wang</b>, Pincun Liu, Saining Xie, Ken Perlin</p>
+                <p class="venue"><span class="status">Under review — preprint available upon request</span></p>
+                <details>
+                    <summary>Abstract</summary>
+                    <p>We designed a proactive AI agent that monitors group brainstorming and intervenes at opportune moments to counter idea stagnation. Through two user studies with 18 participants, we found that the proactive agent boosted idea generation, depth, and novelty compared to a reactive baseline, though users still preferred reactive support for its greater sense of control.</p>
+                </details>
+            </article>
 
-        <div class="project">
-            <div class="video-container">
-                <iframe class="project-video" width="320" height="240" src="https://www.youtube.com/embed/ETO5zSpzQ3g" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
-            </div>
-            <div class="project-details">
-                <b>Mixed Reality Collaboration for Complementary Working Styles</b>
-                <br>
-                <i><b>Keru Wang</b>, Zhu Wang, Karl Rosenberg, Zhenyi He, Dong Woo Yoo, Un Joo Christopher, Ken Perlin</i>
-                <br>
-                <p>Our project combines immersive VR, multitouch AR, real-time volumetric capture, motion capture, robotically-actuated tangible interfaces at multiple scales, and live coding, in service of a human-centric way of collaborating. </p>
-                <div class="project-links">
-                    <a href="https://dl.acm.org/doi/abs/10.1145/3532834.3536216" target="_blank">ACM Siggraph Immersive Pavilion 2022</a> | 
-                    <a href="pdf/Mixed-Reality-Collaboration-for-Complementary-Working-Styles.pdf" target="_blank">PDF</a>
-                </div>
-            </div>
-        </div>
+            <article class="card">
+                <div class="media contain"><img src="image/intervention_time.png" alt="Intervention timing results" loading="lazy"></div>
+                <h3>Should I Speak Up? Aligning Proactive AI Interventions with Human Expectations in Group Brainstorming</h3>
+                <p class="subtitle">When should an AI speak up in a group discussion?</p>
+                <p class="authors"><b>Keru Wang</b>, Pincun Liu, Saining Xie, Ken Perlin</p>
+                <p class="venue"><span class="status">Under review — preprint available upon request</span></p>
+                <details>
+                    <summary>Abstract</summary>
+                    <p>We explore how proactive AI agents can step in at the right moments to keep group brainstorming productive and natural. Using a custom LLM system that monitors discussions and explains its reasoning, we compared its timing judgement to expert evaluations. The study uncovers what makes AI interventions feel helpful versus disruptive, guiding the design of more intuitive and collaborative AI partners.</p>
+                </details>
+            </article>
 
-        <div class="project">
-            <div class="video-container">
-                <iframe class="project-video" width="320" height="240" src="https://www.youtube.com/embed/6cyPh9jM6vQ?si=43oQ_xEMIP3Sl-uM" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
-            </div>
-            <div class="project-details">
-                <b>GazeChat: Enhancing Virtual Conferences with Gaze-aware 3D Photos</b>
-                <br>
-                <i>Zhenyi He, <b>Keru Wang</b>, Brandon Yushan Feng, Ruofei Du, Ken Perlin</i>
-                <br>
-                <p>GazeChat is a remote conferencing system that uses gaze-aware 3D profile photos to enrich online conversations. Through webcam-based gaze tracking and neural rendering, GazeChat redirects participants' gaze to accurately reflect who they’re looking at, enhancing communication and engagement.</p>
-                <div class="project-links">
-                    <a href="https://dl.acm.org/doi/10.1145/3472749.3474785" target="_blank">ACM UIST 2021</a> |
-                    <a href="pdf/gazeChat.pdf" target="_blank">PDF</a>
-                </div>
-            </div>
-        </div>
-        <!-- Add more projects as needed -->
-    </div>
+            <article class="card">
+                <div class="media" data-youtube="o2iKKrLNM7g"><img src="https://i.ytimg.com/vi/o2iKKrLNM7g/hqdefault.jpg" alt="Flying Together video" loading="lazy"><button aria-label="Play Flying Together video"></button></div>
+                <h3>Flying Together: Human-Guided Immersive Shared Control for Aerial Robot Teams in Unknown Environments</h3>
+                <p class="subtitle">VR shared control for guiding teams of drones</p>
+                <p class="authors">Lou De Bel-Air, Luca Morando, Ruitao Chen, <b>Keru Wang</b>, Benjamin Jarvis, Charbel Toumieh, Yang Zhou, Ken Perlin, Dario Floreano, Giuseppe Loianno</p>
+                <p class="venue">IEEE ICRA 2026</p>
+                <p class="links"><a href="https://arxiv.org/abs/2605.21680" target="_blank">arXiv</a> | <a href="pdf/flying-together.pdf" target="_blank">PDF</a> | <a href="https://www.youtube.com/watch?v=o2iKKrLNM7g" target="_blank">Video</a></p>
+                <details>
+                    <summary>Abstract</summary>
+                    <p>We developed a VR-based shared control framework that allows operators to guide teams of drones in complex, unknown environments. A motion-primitive planner integrates real-time user input to generate collision-free trajectories, while an admittance controller enables flexible human influence. Experiments show that this immersive, human-in-the-loop approach enhances obstacle avoidance, coordination, and operator efficiency.</p>
+                </details>
+            </article>
 
-<!-- CV section -->
-    <!-- <div class="content" id="cv">
-        <h2>CV</h2>
-        <p></p>
-            <a href="https://github.com/your-github">GitHub</a>
-            <a href="mailto:your-email@example.com">Email</a>
-    </div> -->
+            <article class="card">
+                <div class="media" data-youtube="jS4reLJ7Lt0"><img src="https://i.ytimg.com/vi/jS4reLJ7Lt0/hqdefault.jpg" alt="Celestial Blossom video" loading="lazy"><button aria-label="Play Celestial Blossom video"></button></div>
+                <h3>Celestial Blossom: A Collaborative, Meditative VR Journey of Fractal Art and Music</h3>
+                <p class="subtitle">Co-creating fractal art and music together in VR</p>
+                <p class="authors">Pincun Liu, <b>Keru Wang</b>, Yi Wu, Xiaoan Liu, Yushen Hu, Zhu Wang, Agnieszka Roginska, Ken Perlin</p>
+                <p class="venue">ACM SIGGRAPH Asia XR 2025</p>
+                <p class="links"><a href="https://dl.acm.org/doi/full/10.1145/3761667.3761947" target="_blank">ACM</a> | <a href="pdf/celestial-blossom.pdf" target="_blank">PDF</a> | <a href="https://www.youtube.com/watch?v=jS4reLJ7Lt0" target="_blank">Video</a></p>
+                <details>
+                    <summary>Abstract</summary>
+                    <p>Celestial Blossom is a collaborative, meditative VR experience where participants co-create generative fractal art through hand-drawn sketches, transforming movements into evolving audiovisual symphonies. Set in a celestial void, strokes morph into glowing fractal particles, from microscopic grains to cosmic stars, each shaping sonic textures and evolving into an immersive soundscape. Multiplayer interaction allows users to weave their creations into a shared immersive composition. At the end, participants receive a printed rendering of their artwork, which can be scanned to revisit the fractals and melodies they created in VR.</p>
+                </details>
+            </article>
+
+            <article class="card">
+                <div class="media contain"><img src="image/audio-pseudo-haptics-heat-map.png" alt="Heat map of audio-influenced pseudo-haptics research" loading="lazy"></div>
+                <h3>Audio-influenced Pseudo-haptics: A Review of Effects, Applications, and Research Directions</h3>
+                <p class="subtitle">How sound can create a sense of touch</p>
+                <p class="authors"><b>Keru Wang</b>, Yi Wu, Pincun Liu, Zhu Wang, Agnieszka Roginska, Qi Sun, Ken Perlin</p>
+                <p class="venue">AM.ICAD 2025</p>
+                <p class="links"><a href="https://www.researchgate.net/profile/Keru-Wang-3/publication/393882712_AUDIO-INFLUENCED_PSEUDO-HAPTICS_A_REVIEW_OF_EFFECTS_APPLICATIONS_AND_RESEARCH_DIRECTIONS/links/687e8ddb1a77b36b5b046f97/AUDIO-INFLUENCED-PSEUDO-HAPTICS-A-REVIEW-OF-EFFECTS-APPLICATIONS-AND-RESEARCH-DIRECTIONS.pdf" target="_blank">Paper</a> | <a href="pdf/Audio_Pseudo_haptics_Survey.pdf" target="_blank">PDF</a></p>
+                <details>
+                    <summary>Abstract</summary>
+                    <p>This survey explores how auditory cues can evoke pseudo-haptic sensations, offering a cost-effective alternative to traditional haptic devices. We review existing research on audio-influenced pseudo-haptics, summarize mappings between sound and touch perception, and outline future opportunities for creating more immersive and accessible interactive systems.</p>
+                </details>
+            </article>
+
+            <article class="card">
+                <div class="media" data-youtube="UfQBq2Kwe2Q"><img src="https://i.ytimg.com/vi/UfQBq2Kwe2Q/hqdefault.jpg" alt="Robotecture video" loading="lazy"><button aria-label="Play Robotecture video"></button></div>
+                <h3>Robotecture: A Modular Shape-changing Interface Using Actuated Support Beams</h3>
+                <p class="subtitle">Modular actuated beams for shape-changing surfaces and spaces</p>
+                <p class="authors">Yuhan Wang, <b>Keru Wang</b>, Zhu Wang*, Ken Perlin*</p>
+                <p class="venue">ACM TEI 2025</p>
+                <p class="links"><a href="https://dl.acm.org/doi/abs/10.1145/3689050.3704925" target="_blank">ACM</a> | <a href="pdf/RoboTerrain.pdf" target="_blank">PDF</a> | <a href="https://www.youtube.com/watch?v=UfQBq2Kwe2Q" target="_blank">Video</a></p>
+                <details>
+                    <summary>Abstract</summary>
+                    <p>Robotecture is a scalable, cost-efficient shape-changing system using modular actuated beams to create dynamic surfaces and enclosures. Its flexible, space-efficient design enables applications ranging from tabletop displays and smart storage systems to smart architecture.</p>
+                </details>
+            </article>
+
+            <article class="card">
+                <div class="media" data-youtube="oAmVAYb8cIA"><img src="https://i.ytimg.com/vi/oAmVAYb8cIA/hqdefault.jpg" alt="Generative terrain authoring video" loading="lazy"><button aria-label="Play generative terrain authoring video"></button></div>
+                <h3>Generative Terrain Authoring with Mid-air Hand Sketching in Virtual Reality</h3>
+                <p class="subtitle">Sketching landscapes in mid-air with a generative model</p>
+                <p class="authors">Yushen Hu, <b>Keru Wang</b>, Yuli Shao, Jan Plass, Zhu Wang*, Ken Perlin*</p>
+                <p class="venue">ACM VRST 2024 &nbsp;<span class="award">🏆 Best Paper Award</span></p>
+                <p class="links"><a href="https://dl.acm.org/doi/10.1145/3641825.3687736" target="_blank">ACM</a> | <a href="pdf/terrainVR.pdf" target="_blank">PDF</a> | <a href="https://www.youtube.com/watch?v=oAmVAYb8cIA" target="_blank">Video</a></p>
+                <details>
+                    <summary>Abstract</summary>
+                    <p>We present a VR-based terrain generation system that uses hand gestures and a generative model for fast landscape prototyping. Users draw and modify mid-air strokes to outline shapes, and a Conditional GAN, trained on real terrains' height maps, generates realistic landscapes blending user input with training features.</p>
+                </details>
+            </article>
+
+            <article class="card">
+                <div class="media" data-youtube="EjPgJE8A_fE"><img src="https://i.ytimg.com/vi/EjPgJE8A_fE/hqdefault.jpg" alt="Collaborative XR design environment video" loading="lazy"><button aria-label="Play collaborative XR design environment video"></button></div>
+                <h3>A Collaborative Multimodal XR Physical Design Environment</h3>
+                <p class="subtitle">Co-designing physical objects with multimodal XR</p>
+                <p class="authors"><b>Keru Wang</b>, Pincun Liu, Yushen Hu, Xiaoan Liu, Zhu Wang, Ken Perlin</p>
+                <p class="venue">ACM SIGGRAPH Asia XR 2024</p>
+                <p class="links"><a href="https://dl.acm.org/doi/full/10.1145/3681759.3688914" target="_blank">ACM</a> | <a href="pdf/a-collaborative-multimodal-mr-physical-design-environment.pdf" target="_blank">PDF</a> | <a href="https://www.youtube.com/watch?v=EjPgJE8A_fE" target="_blank">Video</a></p>
+                <details>
+                    <summary>Abstract</summary>
+                    <p>Our collaborative XR system integrates physical and virtual design spaces, superimposing visual modifications on physical objects via video passthrough. With multimodal inputs, real-time object tracking, and 3D annotations, it accelerates design iterations for digital prototyping.</p>
+                </details>
+            </article>
+
+            <article class="card">
+                <div class="media" data-youtube="L0QmnD0Gl48"><img src="https://i.ytimg.com/vi/L0QmnD0Gl48/hqdefault.jpg" alt="Push-That-There video" loading="lazy"><button aria-label="Play Push-That-There video"></button></div>
+                <h3>“Push-That-There”: Tabletop Multi-robot Object Manipulation via Multimodal 'Object-level Instruction'</h3>
+                <p class="subtitle">Directing tabletop robots by talking about objects, not robots</p>
+                <p class="authors"><b>Keru Wang</b>, Zhu Wang, Ken Nakagaki, Ken Perlin</p>
+                <p class="venue">ACM DIS 2024</p>
+                <p class="links"><a href="https://dl.acm.org/doi/abs/10.1145/3643834.3661542" target="_blank">ACM</a> | <a href="pdf/push-that-there.pdf" target="_blank">PDF</a> | <a href="https://www.youtube.com/watch?v=L0QmnD0Gl48" target="_blank">Video</a></p>
+                <details>
+                    <summary>Abstract</summary>
+                    <p>The system lets users intuitively use <i>'object-level' instructions</i> to control a multi-robot setup to manipulate tabletop objects via gestures, GUI, tangible inputs, and speech. Robots collectively execute commands through a generalizable algorithm, enabling high-level, object-focused multimodal interactions.</p>
+                </details>
+            </article>
+
+            <article class="card">
+                <div class="media"><img src="image/gallery_setup.png" alt="Co-located XR gallery setup" loading="lazy"></div>
+                <h3>A Spatial Audio System for Co-Located Multi-Participant Extended Reality Experiences</h3>
+                <p class="subtitle">Spatial audio for shared, co-located XR</p>
+                <p class="authors">Yi Wu, Agnieszka Roginska, <b>Keru Wang</b>, Zhu Wang, Ken Perlin</p>
+                <p class="venue">ICAD 2024</p>
+                <p class="links"><a href="https://icad2024.icad.org/wp-content/uploads/2024/06/ICAD_2024_paper_28.pdf" target="_blank">PDF</a></p>
+                <details>
+                    <summary>Abstract</summary>
+                    <p>This paper presents the ongoing development of a spatial audio system for co-located, multi-participant, extended reality (CMXR) experiences. By integrating spatial audio and informative auditory displays, the system can enhance the sense of immersion and presence among participants and facilitate collaboration.</p>
+                </details>
+            </article>
+
+            <article class="card">
+                <div class="media" data-youtube="269bo-XhcDg"><img src="https://i.ytimg.com/vi/269bo-XhcDg/hqdefault.jpg" alt="Asymmetrical VR for Education video" loading="lazy"><button aria-label="Play Asymmetrical VR for Education video"></button></div>
+                <h3>Asymmetrical VR for Education</h3>
+                <p class="subtitle">Bringing non-VR instructors into the VR classroom</p>
+                <p class="authors"><b>Keru Wang</b>, Zhu Wang, Ken Perlin</p>
+                <p class="venue">ACM SIGGRAPH Immersive Pavilion 2023</p>
+                <p class="links"><a href="https://dl.acm.org/doi/abs/10.1145/3588027.3595600" target="_blank">ACM</a> | <a href="pdf/Asymmetrical-VR-for-Education.pdf" target="_blank">PDF</a> | <a href="https://www.youtube.com/watch?v=269bo-XhcDg" target="_blank">Video</a></p>
+                <details>
+                    <summary>Abstract</summary>
+                    <p>We developed a system that allows non-VR instructors to use hand-held devices, like smartphones and tablets, to explore VR content and interact with fully immersed students. Instructors can observe the VR environment, switch between students’ views, and interact within the VR world, while students view real-time video streams of both the physical space and the instructor.</p>
+                </details>
+            </article>
+
+            <article class="card">
+                <div class="media" data-youtube="ETO5zSpzQ3g"><img src="https://i.ytimg.com/vi/ETO5zSpzQ3g/hqdefault.jpg" alt="Mixed reality collaboration video" loading="lazy"><button aria-label="Play mixed reality collaboration video"></button></div>
+                <h3>Mixed Reality Collaboration for Complementary Working Styles</h3>
+                <p class="subtitle">Mixed reality built around how different people like to work</p>
+                <p class="authors"><b>Keru Wang</b>, Zhu Wang, Karl Rosenberg, Zhenyi He, Dong Woo Yoo, Un Joo Christopher, Ken Perlin</p>
+                <p class="venue">ACM SIGGRAPH Immersive Pavilion 2022</p>
+                <p class="links"><a href="https://dl.acm.org/doi/abs/10.1145/3532834.3536216" target="_blank">ACM</a> | <a href="pdf/Mixed-Reality-Collaboration-for-Complementary-Working-Styles.pdf" target="_blank">PDF</a> | <a href="https://www.youtube.com/watch?v=ETO5zSpzQ3g" target="_blank">Video</a></p>
+                <details>
+                    <summary>Abstract</summary>
+                    <p>Our project combines immersive VR, multitouch AR, real-time volumetric capture, motion capture, robotically-actuated tangible interfaces at multiple scales, and live coding, in service of a human-centric way of collaborating.</p>
+                </details>
+            </article>
+
+            <article class="card">
+                <div class="media" data-youtube="6cyPh9jM6vQ"><img src="https://i.ytimg.com/vi/6cyPh9jM6vQ/hqdefault.jpg" alt="GazeChat video" loading="lazy"><button aria-label="Play GazeChat video"></button></div>
+                <h3>GazeChat: Enhancing Virtual Conferences with Gaze-aware 3D Photos</h3>
+                <p class="subtitle">Gaze-aware 3D photos that show who is looking at whom</p>
+                <p class="authors">Zhenyi He, <b>Keru Wang</b>, Brandon Yushan Feng, Ruofei Du, Ken Perlin</p>
+                <p class="venue">ACM UIST 2021</p>
+                <p class="links"><a href="https://dl.acm.org/doi/10.1145/3472749.3474785" target="_blank">ACM</a> | <a href="pdf/gazeChat.pdf" target="_blank">PDF</a> | <a href="https://www.youtube.com/watch?v=6cyPh9jM6vQ" target="_blank">Video</a></p>
+                <details>
+                    <summary>Abstract</summary>
+                    <p>GazeChat is a remote conferencing system that uses gaze-aware 3D profile photos to enrich online conversations. Through webcam-based gaze tracking and neural rendering, GazeChat redirects participants' gaze to accurately reflect who they’re looking at, enhancing communication and engagement.</p>
+                </details>
+            </article>
+
+        </div>
+    </section>
 
     <footer>
-        <p>&copy; 2025 Keru Wang. All rights reserved.</p>
+        &copy; 2026 Keru Wang
     </footer>
+
+    <script>
+        // Load a YouTube player only when its thumbnail is clicked.
+        document.querySelectorAll('.media[data-youtube] button').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var media = btn.parentElement;
+                var id = media.getAttribute('data-youtube');
+                media.innerHTML = '<iframe src="https://www.youtube.com/embed/' + id + '?autoplay=1" title="Project video" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>';
+            });
+        });
+    </script>
 </body>
 </html>
