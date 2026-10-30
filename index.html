@@ -7,8 +7,8 @@
     <meta name="description" content="Keru Wang — Computer Science Ph.D. candidate at NYU working on proactive multimodal agents, human–AI interaction, and mixed reality.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400;1,700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css?v=9">
+    <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@200;300;400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400;1,700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css?v=13">
 </head>
 <body>
 
@@ -274,6 +274,8 @@
                 document.querySelectorAll('.side-nav a[href^="#"]'),
                 function (a) { return document.querySelector(a.getAttribute('href')); }
             );
+            var all = Array.prototype.slice.call(document.querySelectorAll('.side-nav a'));
+            var dark = Array.prototype.slice.call(document.querySelectorAll('.hero, .banner'));
             var ticking = false;
 
             function update() {
@@ -289,6 +291,15 @@
                     a.classList.toggle('active', a === current);
                     if (a === current) a.setAttribute('aria-current', 'location');
                     else a.removeAttribute('aria-current');
+                });
+
+                // Each link turns white while it sits over the dark hero or banner.
+                all.forEach(function (a) {
+                    var r = a.getBoundingClientRect(), mid = (r.top + r.bottom) / 2;
+                    a.classList.toggle('on-dark', dark.some(function (band) {
+                        var b = band.getBoundingClientRect();
+                        return mid > b.top && mid < b.bottom;
+                    }));
                 });
             }
 

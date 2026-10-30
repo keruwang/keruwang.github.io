@@ -12,7 +12,7 @@
     --nav-w: 132px;
     --nav-space: 176px;   /* nav width + its left offset + a gap */
     --col: 960px;
-    --heading: "Montserrat", "Helvetica Neue", Arial, sans-serif;
+    --heading: "Oswald", "Helvetica Neue", Arial, sans-serif;   /* as on the art page */
     --body: "Source Sans 3", "Helvetica Neue", Arial, sans-serif;
 }
 
@@ -33,36 +33,41 @@ a { color: var(--accent); text-decoration: none; }
 a:hover { color: var(--accent-dark); text-decoration: underline; }
 
 /* ---------- Side navigation ---------- */
+/* in the art page's manner: a thin name over small spaced capitals, a dash at the current section */
 .side-nav {
     position: fixed;
-    top: 28px;
-    left: 24px;
+    top: 36px;
+    left: 36px;
     z-index: 10;
     display: flex;
     flex-direction: column;
-    align-items: flex-end;
-    gap: 6px;
+    align-items: flex-start;
+    gap: 9px;
     width: var(--nav-w);
 }
 
 .side-nav a {
     font-family: var(--heading);
-    font-size: 11.5px;
-    letter-spacing: 0.02em;
-    color: var(--text);
-    background: rgba(255, 255, 255, 0.92);
-    border: 1px solid var(--line);
-    padding: 3px 9px;
-    text-align: right;
-    transition: background 0.2s, color 0.2s;
+    font-weight: 300;
+    font-size: 13px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--muted);
+    transition: color 0.3s, text-shadow 0.3s;
 }
 
 .side-nav a:hover,
-.side-nav a.active { background: var(--text); color: #fff; border-color: var(--text); text-decoration: none; }
+.side-nav a.active { color: var(--text); text-decoration: none; }
+.side-nav a.active:not(.nav-name)::before { content: "— "; }
 
 .side-nav .nav-name {
-    font-weight: 600;
-    margin-bottom: 4px;
+    font-weight: 200;
+    font-size: 1.75rem;
+    line-height: 1.02;
+    letter-spacing: 0.02em;
+    text-transform: none;
+    color: var(--text);
+    margin-bottom: 20px;
 }
 
 /* ---------- Hero ---------- */
@@ -102,18 +107,21 @@ a:hover { color: var(--accent-dark); text-decoration: underline; }
 
 .hero h1 {
     font-family: var(--heading);
-    font-weight: 700;
-    font-size: clamp(2.4rem, 5vw, 3.6rem);
-    line-height: 1.1;
-    margin: 0 0 10px;
+    font-weight: 300;
+    font-size: clamp(2.8rem, 6vw, 4.4rem);
+    line-height: 1.05;
+    letter-spacing: 0.02em;
+    margin: 0 0 12px;
 }
 
 .nowrap { white-space: nowrap; }
 
 .hero .tagline {
     font-family: var(--heading);
-    font-weight: 600;
-    font-size: clamp(1rem, 2vw, 1.25rem);
+    font-weight: 300;
+    font-size: clamp(0.8rem, 1.4vw, 0.95rem);
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
     margin: 0;
     opacity: 0.95;
 }
@@ -127,8 +135,9 @@ a:hover { color: var(--accent-dark); text-decoration: underline; }
 
 .section-title {
     font-family: var(--heading);
-    font-weight: 600;
-    font-size: 1.6rem;
+    font-weight: 300;
+    font-size: 2rem;
+    letter-spacing: 0.02em;
     margin: 0 0 6px;
 }
 
@@ -203,8 +212,9 @@ a:hover { color: var(--accent-dark); text-decoration: underline; }
 
 .banner h2 {
     font-family: var(--heading);
-    font-weight: 600;
-    font-size: clamp(1.8rem, 4vw, 2.4rem);
+    font-weight: 300;
+    font-size: clamp(2.2rem, 4.5vw, 3rem);
+    letter-spacing: 0.02em;
     margin: 0;
 }
 
@@ -264,9 +274,8 @@ a:hover { color: var(--accent-dark); text-decoration: underline; }
 .media button:focus-visible::after { background-color: var(--accent); }
 
 .card h3 {
-    font-family: var(--heading);
     font-weight: 600;
-    font-size: 1.02rem;
+    font-size: 1.08rem;
     line-height: 1.35;
     margin: 0 0 4px;
 }
@@ -312,9 +321,11 @@ a:hover { color: var(--accent-dark); text-decoration: underline; }
 .card summary {
     cursor: pointer;
     color: var(--text);
-    font-size: 13px;
+    font-size: 12px;
     font-family: var(--heading);
-    letter-spacing: 0.02em;
+    font-weight: 300;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
 }
 
 .card details p { margin: 8px 0 0; line-height: 1.55; }
@@ -350,6 +361,15 @@ footer {
         margin-right: auto;
         max-width: min(var(--col), calc(100% - var(--nav-space) - 24px));
     }
+
+    /* links passing over the dark hero and banner turn white (set by the script in index.html) */
+    .side-nav a.on-dark {
+        color: rgba(255, 255, 255, 0.88);
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.55), 0 0 10px rgba(0, 0, 0, 0.35);
+    }
+    .side-nav a.on-dark:hover,
+    .side-nav a.on-dark.active,
+    .side-nav .nav-name.on-dark { color: #fff; }
 }
 
 @media (max-width: 899px) {
@@ -362,13 +382,14 @@ footer {
         flex-direction: row;
         flex-wrap: wrap;
         justify-content: center;
-        align-items: center;
-        gap: 4px 6px;
-        padding: 8px 12px;
+        align-items: baseline;
+        gap: 4px 16px;
+        padding: 10px 16px;
         background: rgba(255, 255, 255, 0.96);
         border-bottom: 1px solid var(--line);
     }
-    .side-nav .nav-name { margin: 0 6px 0 0; }
+    .side-nav .nav-name { font-size: 1.3rem; margin: 0 4px 0 0; }
+    .side-nav a.active:not(.nav-name)::before { content: none; }   /* the dash would shift the row as you scroll */
 }
 
 @media (max-width: 1100px) {
@@ -377,6 +398,10 @@ footer {
 
 @media (max-width: 640px) {
     body { font-size: 16px; }
+    /* keep the top bar to one row on a phone */
+    .side-nav { gap: 4px 13px; padding: 10px 12px; }
+    .side-nav a { font-size: 12px; letter-spacing: 0.12em; }
+    .side-nav .nav-name { font-size: 1.2rem; letter-spacing: 0.02em; }
     .section { padding: 44px 16px; }
     .hero-inner, .banner-inner { padding-left: 16px; padding-right: 16px; }
     .hero { min-height: 48vh; }
