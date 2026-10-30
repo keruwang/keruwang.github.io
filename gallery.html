@@ -313,7 +313,8 @@
         </div>
         </div>
 
-        <div class="compose" data-max="250" data-phone-max="250">
+        <!-- smaller on phones, where she walks over everything on a small screen -->
+        <div class="compose" data-max="250" data-phone-max="150">
             <div class="across">
                 <figure class="item live creature" data-a="1"
                     data-src="gallery/cg/hw4/index.html?embed&amp;light&amp;bare&amp;follow&amp;v=12" data-still="gallery/media/hw4.png" data-title="A Shy Nay"></figure>
@@ -485,6 +486,13 @@
     // ---------- the eyes and the shy triangle keep watching the mouse anywhere on the page ----------
     // While the mouse is over this page (not over their own frames), send its position into their frames,
     // in the frames' own pixels; each frame treats it as the nearest point on its canvas's edge.
+    // On a touch screen a finger on the page counts as the mouse while it is down.
+    var lastTouch = -1e9;   // a tap also sends the mouse events a mouse would have, a moment later: those are not a mouse
+    ['touchstart', 'touchmove', 'touchend', 'touchcancel'].forEach(function (type) {
+        document.addEventListener(type, function () { lastTouch = performance.now(); }, { passive: true, capture: true });
+    });
+    function isMouse() { return performance.now() - lastTouch > 1000; }
+    function touchPoint(e) { var t = e.touches[0] || e.changedTouches[0]; return t ? [t.clientX, t.clientY] : null; }
     var followers = items.filter(function (i) { return /[?&]follow\b/.test(i.dataset.src || ''); });
     var pointer = null, pointerFrame = 0;
     var shyGaze = null;   // when set, what the shy triangle looks at instead of the mouse (see below)
@@ -512,7 +520,10 @@
     }
     function queuePointer() { if (!pointerFrame) pointerFrame = requestAnimationFrame(sendPointer); }
     if (followers.length) {
-        document.addEventListener('mousemove', function (e) { pointer = [e.clientX, e.clientY]; queuePointer(); });
+        document.addEventListener('mousemove', function (e) { if (isMouse()) { pointer = [e.clientX, e.clientY]; queuePointer(); } });
+        ['touchstart', 'touchmove'].forEach(function (type) {
+            document.addEventListener(type, function (e) { var p = touchPoint(e); if (p) { pointer = p; queuePointer(); } }, { passive: true });
+        });
         window.addEventListener('scroll', queuePointer, { passive: true });
     }
 
@@ -521,25 +532,27 @@
     // a layer over everything in the main column, and stops a little way off, watching. While she walks she
     // faces where she is going; once she stops, come closer and her own running away (inside her frame) takes
     // over. She waits in the side menu until the mouse first moves, and when the mouse leaves the window she
-    // lingers wherever she is. Left near the zine with the mouse resting, she watches its pages turn. Mouse
-    // only; she stays home on touch screens.
+    // lingers wherever she is. Left near the zine with the mouse resting, she watches its pages turn. On a touch
+    // screen she follows a finger while it is down (and runs from it up close), and lingers once it lifts.
     var shy = items.filter(function (i) { return /cg\/hw4\//.test(i.dataset.src || ''); })[0];
-    if (shy && !reduceMotion && window.matchMedia('(hover: hover)').matches) {
+    if (shy && !reduceMotion) {
         var area = function () {                  // where she may walk: the main column, as far as it is on screen
             var w = wall.getBoundingClientRect(), cs = getComputedStyle(wall);
             return { left: w.left + parseFloat(cs.paddingLeft), right: w.right - parseFloat(cs.paddingRight), top: 0, bottom: innerHeight };
         };
-        var KEEP = 150, EASE = 0.05;             // how near she comes (center to mouse); the share of the way she covers each frame
+        var KEEP = 150, EASE = 0.05;             // how near she comes (center to mouse, at her full 250 px; less when smaller); the share of the way she covers each frame
         var off = [0, 0], cursor = null, walking = 0, striding = false, lastMove = 0;
 
         // Where she waits before the mouse first moves: in the side menu, in the empty space under the
-        // filters (on narrow windows the menu sits above the wall, so to the right of the title and filters).
+        // filters (on narrow windows the menu sits above the wall, so at the right, level with the title).
         var side = document.querySelector('.side'), filters = side.querySelector('.filters'), foot = side.querySelector('small');
         var perched = true;
         var perch = function (r) {
             var f = filters.getBoundingClientRect(), s = side.getBoundingClientRect(), cs = getComputedStyle(side);
-            if (cs.position !== 'fixed')
-                return [Math.min(f.right + r.width / 2, innerWidth - r.width / 2), (side.querySelector('h1').getBoundingClientRect().top + f.bottom) / 2];
+            if (cs.position !== 'fixed') {
+                var h = side.querySelector('h1').getBoundingClientRect();
+                return [Math.min(f.right + r.width / 2, innerWidth - r.width / 2), (h.top + h.bottom) / 2];
+            }
             var floor = foot.getBoundingClientRect().top;
             return [(s.left + parseFloat(cs.paddingLeft) + s.right - parseFloat(cs.paddingRight)) / 2, (f.bottom + floor) / 2];
         };
@@ -593,7 +606,8 @@
             var target = c;                       // with the mouse gone, she lingers where she is
             if (inside) {
                 var v = [cursor[0] - c[0], cursor[1] - c[1]], d = Math.hypot(v[0], v[1]);
-                target = d > KEEP ? [c[0] + v[0] * (1 - KEEP / d), c[1] + v[1] * (1 - KEEP / d)] : c;
+                var keep = KEEP * r.width / 250;
+                target = d > keep ? [c[0] + v[0] * (1 - keep / d), c[1] + v[1] * (1 - keep / d)] : c;
                 // keep her whole frame inside her area
                 target = [Math.min(Math.max(target[0], sr.left + r.width / 2), sr.right - r.width / 2),
                           Math.min(Math.max(target[1], sr.top + r.height / 2), sr.bottom - r.height / 2)];
@@ -609,24 +623,35 @@
             if (inside) walking = requestAnimationFrame(walk);
         };
         var wake = function () { if (!walking) walking = requestAnimationFrame(walk); };
-        document.addEventListener('mousemove', function (e) {
-            cursor = [e.clientX, e.clientY]; lastMove = performance.now(); perched = false; wake();
-        });
+        var follow = function (p) { cursor = p; lastMove = performance.now(); perched = false; wake(); };
+        document.addEventListener('mousemove', function (e) { if (isMouse()) follow([e.clientX, e.clientY]); });
         // pressing on her still frightens her: pass presses over her frame along, with where they land in it,
         // so she can tell a press on her from one beside her
-        var press = function (down) {
-            return function (e) {
-                var f = shy.querySelector('iframe'), r = f && f.getBoundingClientRect();
-                if (!r || !f.contentWindow) return;
-                if (!down || (e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom)) {
-                    var s = r.width / 400;
-                    f.contentWindow.postMessage({ kwPress: down, kwAt: [(e.clientX - r.left) / s, (e.clientY - r.top) / s] }, location.origin);
-                }
-            };
+        var press = function (down, p) {
+            var f = shy.querySelector('iframe'), r = f && f.getBoundingClientRect();
+            if (!r || !f.contentWindow || !p) return;
+            if (!down || (p[0] >= r.left && p[0] <= r.right && p[1] >= r.top && p[1] <= r.bottom)) {
+                var s = r.width / 400;
+                f.contentWindow.postMessage({ kwPress: down, kwAt: [(p[0] - r.left) / s, (p[1] - r.top) / s] }, location.origin);
+            }
         };
-        document.addEventListener('mousedown', press(true));
-        document.addEventListener('mouseup', press(false));
+        document.addEventListener('mousedown', function (e) { if (isMouse()) press(true, [e.clientX, e.clientY]); });
+        document.addEventListener('mouseup', function (e) { if (isMouse()) press(false, [e.clientX, e.clientY]); });
         document.documentElement.addEventListener('mouseleave', function () { cursor = null; wake(); });
+        // a finger: followed while it is down, a press where it lands, gone when it lifts
+        document.addEventListener('touchstart', function (e) {
+            var p = touchPoint(e);
+            if (p) { follow(p); press(true, p); }
+        }, { passive: true });
+        document.addEventListener('touchmove', function (e) { var p = touchPoint(e); if (p) follow(p); }, { passive: true });
+        ['touchend', 'touchcancel'].forEach(function (type) {
+            document.addEventListener(type, function (e) {
+                if (e.touches.length) return;
+                press(false, touchPoint(e));
+                cursor = null;
+                wake();
+            }, { passive: true });
+        });
         window.addEventListener('scroll', wake, { passive: true });
         // the wall settling (fonts, the zine's height) moves her place in it; while she waits, put her back
         if ('ResizeObserver' in window) new ResizeObserver(wake).observe(wall);
