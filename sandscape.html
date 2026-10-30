@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SandScape · Keru Wang</title>
+    <meta name="description" content="SandScape, a sand table for shaping landscapes by hand, on permanent view at the MIT Museum. Keru Wang was its lead artist (2022), in collaboration with the MIT Tangible Media Group.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@200;300;400&family=Source+Sans+3:wght@400&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #ffffff;
+            --text: #2b2926;
+            --muted: #8b877e;
+            --side-w: 340px;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            background: var(--bg);
+            color: var(--text);
+            font-family: "Source Sans 3", "Helvetica Neue", Arial, sans-serif;
+        }
+
+        a { color: var(--text); }
+
+        /* ---------- the words, in the gallery's side column (wider here, for reading) ---------- */
+        .side {
+            position: fixed;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            width: var(--side-w);
+            padding: 44px 32px 32px 44px;
+            overflow-y: auto;
+        }
+
+        .back { font-size: 13px; color: var(--muted); text-decoration: none; letter-spacing: 0.04em; }
+        .back:hover { color: var(--text); }
+
+        h1 {
+            font-family: "Oswald", "Helvetica Neue", Arial, sans-serif;
+            font-weight: 200;
+            font-size: 2.3rem;
+            line-height: 1.02;
+            letter-spacing: 0.02em;
+            margin: 44px 0 10px;
+        }
+
+        .label {
+            font-family: "Oswald", "Helvetica Neue", Arial, sans-serif;
+            font-weight: 300;
+            font-size: 12px;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: var(--muted);
+        }
+        .kind { margin: 0 0 30px; }
+
+        .side p { font-size: 15px; line-height: 1.6; margin: 0 0 16px; }
+
+        .credits { margin: 30px 0 0; font-size: 13px; line-height: 1.55; color: var(--muted); }
+        .credits dt { margin-top: 12px; }
+        .credits dd { margin: 2px 0 0; color: var(--text); }
+
+        .links { list-style: none; margin: 30px 0 0; padding: 0; font-size: 14px; line-height: 1.5; }
+        .links li + li { margin-top: 6px; }
+        .links a { text-decoration-color: var(--muted); text-underline-offset: 3px; }
+        .links a:hover { text-decoration-color: var(--text); }
+
+        /* ---------- the pictures ---------- */
+        .wall {
+            margin-left: var(--side-w);
+            padding: 56px 48px 120px 12px;
+        }
+
+        .wall section + section { margin-top: 90px; }
+        .wall .label { text-align: center; margin: 0 0 28px; }
+
+        /* a row of pictures at one height, edges flush: each takes width in proportion to its shape (--a, width / height);
+           the whole row is held to --h tall at most (--total: the sum of its pictures' --a) */
+        .row {
+            display: flex;
+            gap: 18px;
+            width: min(100%, calc(var(--h, 360px) * var(--total) + 18px * (var(--n) - 1)));
+            margin: 0 auto;
+        }
+        .row + .row { margin-top: 18px; }
+        .row figure { flex: var(--a) 1 0; aspect-ratio: var(--a); margin: 0; overflow: hidden; background: #111; }
+        .row img,
+        .row video { display: block; width: 100%; height: 100%; object-fit: cover; }
+
+        @media (max-width: 1100px) {
+            :root { --side-w: 300px; }
+        }
+
+        /* narrow screens: the words on top, then each picture at full width (the tall films a little narrower) */
+        @media (max-width: 760px) {
+            .side { position: static; width: auto; padding: 28px 20px 8px; overflow: visible; }
+            h1 { margin-top: 26px; font-size: 2rem; }
+            .wall { margin-left: 0; padding: 48px 16px 80px; }
+            .row { flex-direction: column; width: 100%; }
+            .row figure { flex: none; width: 100%; }
+            .row figure.tall { width: 72%; align-self: center; }
+        }
+    </style>
+</head>
+<body>
+
+<aside class="side">
+    <a class="back" href="gallery.html">← art</a>
+    <h1>SandScape</h1>
+    <p class="label kind">Installation · on permanent view at the MIT Museum</p>
+
+    <p>A table of sand for shaping landscapes by hand. As the sand moves, the table reads its new shape and projects
+       an analysis of the terrain back onto it: its height, its contour lines, where rain would run off it. A screen
+       beside it shows the same landscape in 3D.</p>
+    <p>I was the lead artist of the MIT Museum&rsquo;s SandScape (2022), made in collaboration with the MIT Tangible
+       Media Group. It is on permanent view in the museum&rsquo;s Radical Atoms exhibition.</p>
+    <p>The first SandScape was made in 2003 by Hiroshi Ishii&rsquo;s Tangible Media Group at the MIT Media Lab, with
+       the Senseable City Lab.</p>
+
+    <dl class="credits">
+        <dt>SandScape, 2003</dt>
+        <dd>Ben Piper, Yao Wang, Carlo Ratti, Assaf Biderman, Eran Ben-Joseph, Hiroshi Ishii</dd>
+        <dt>MIT Museum version, 2022</dt>
+        <dd>Ken Nakagaki, Keru Wang, Jonathan Williams, Paula Aguilera, Hiroshi Ishii</dd>
+    </dl>
+
+    <ul class="links">
+        <li><a href="https://mitmuseum.mit.edu/exhibitions/radical-atoms" target="_blank" rel="noopener">Radical Atoms at the MIT Museum ↗</a></li>
+        <li><a href="https://mitmuseum.mit.edu/gallery-label-radical-atoms" target="_blank" rel="noopener">The exhibition&rsquo;s labels and credits ↗</a></li>
+        <li><a href="https://tangible.media.mit.edu/project/sandscape/" target="_blank" rel="noopener">SandScape at the Tangible Media Group ↗</a></li>
+    </ul>
+</aside>
+
+<main class="wall">
+    <section>
+        <h2 class="label">At the MIT Museum</h2>
+        <div class="row" style="--total: 3.632; --n: 2; --h: 300px">
+            <figure style="--a: 1.501"><img src="gallery/sandscape/museum-hand.jpg?v=1" alt="A hand pressing into SandScape's sand at the MIT Museum, lit by the projected terrain colors"></figure>
+            <figure style="--a: 2.131"><img src="gallery/sandscape/museum-hands.jpg?v=1" alt="Visitors' hands shaping the sand at the MIT Museum, with the label for its elevation mode below"></figure>
+        </div>
+    </section>
+
+    <section>
+        <h2 class="label">In the lab</h2>
+        <div class="row" style="--total: 2.458; --n: 3; --h: 420px">
+            <figure class="tall" style="--a: 0.5625"><video src="gallery/sandscape/lab-9170.mp4?v=1" poster="gallery/sandscape/lab-9170.jpg?v=1" muted loop playsinline preload="none" aria-label="Stacking blocks on the sand: the projected elevation map and the 3D view on the screen follow"></video></figure>
+            <figure style="--a: 1.333"><img src="gallery/sandscape/lab-2.jpg?v=1" alt="The SandScape table in the lab with wooden blocks on bare sand and the terrain on a screen behind" loading="lazy"></figure>
+            <figure class="tall" style="--a: 0.5625"><video src="gallery/sandscape/lab-9171.mp4?v=1" poster="gallery/sandscape/lab-9171.jpg?v=1" muted loop playsinline preload="none" aria-label="Stacking blocks on the sand while rain falls across the projected landscape"></video></figure>
+        </div>
+        <div class="row" style="--total: 3.166; --n: 3; --h: 320px">
+            <figure style="--a: 1.333"><img src="gallery/sandscape/lab-setup.jpg?v=1" alt="Testing in the lab: the elevation map projected onto the sand and shown on the screen" loading="lazy"></figure>
+            <figure style="--a: 0.959"><img src="gallery/sandscape/lab-3.jpg?v=1" alt="SandScape in the dark, the terrain glowing green on the sand" loading="lazy"></figure>
+            <figure style="--a: 0.874"><img src="gallery/sandscape/lab-4.jpg?v=1" alt="SandScape in the dark, with rain falling over the landscape on the screen" loading="lazy"></figure>
+        </div>
+    </section>
+</main>
+
+<script>
+// the films play only while on screen, and not at all for people who ask for less motion
+(function () {
+    var films = document.querySelectorAll('video');
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches || !('IntersectionObserver' in window)) {
+        Array.prototype.forEach.call(films, function (v) { v.controls = true; });
+        return;
+    }
+    var io = new IntersectionObserver(function (entries) {
+        entries.forEach(function (e) {
+            var v = e.target;
+            if (e.isIntersecting) { v.preload = 'auto'; v.play().catch(function () {}); }
+            else v.pause();
+        });
+    }, { threshold: 0.3 });
+    Array.prototype.forEach.call(films, function (v) { io.observe(v); });
+})();
+</script>
+</body>
+</html>

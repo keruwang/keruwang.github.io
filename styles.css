@@ -4,10 +4,13 @@
     --muted: #6b7078;
     --accent: #2b7bb9;
     --accent-dark: #1d5a8a;
+    --art: #cf3d7a;
+    --art-dark: #a82c5f;
     --line: #e3e5e8;
     --bg: #ffffff;
     --bg-soft: #f6f7f8;
     --nav-w: 132px;
+    --nav-space: 176px;   /* nav width + its left offset + a gap */
     --col: 960px;
     --heading: "Montserrat", "Helvetica Neue", Arial, sans-serif;
     --body: "Source Sans 3", "Helvetica Neue", Arial, sans-serif;
@@ -54,12 +57,10 @@ a:hover { color: var(--accent-dark); text-decoration: underline; }
     transition: background 0.2s, color 0.2s;
 }
 
-.side-nav a:hover { background: var(--text); color: #fff; text-decoration: none; }
+.side-nav a:hover,
+.side-nav a.active { background: var(--text); color: #fff; border-color: var(--text); text-decoration: none; }
 
 .side-nav .nav-name {
-    background: var(--text);
-    color: #fff;
-    border-color: var(--text);
     font-weight: 600;
     margin-bottom: 4px;
 }
@@ -174,6 +175,10 @@ a:hover { color: var(--accent-dark); text-decoration: underline; }
 .profile-links img { width: 18px; height: 18px; }
 
 .about-text p { margin: 0 0 1em; }
+
+/* the link to my own art page, set apart from links to other people's pages */
+.about-text .art-link { color: var(--art); }
+.about-text .art-link:hover { color: var(--art-dark); }
 
 /* ---------- Image banner ---------- */
 .banner {
@@ -335,8 +340,20 @@ footer {
 }
 
 /* ---------- Responsive ---------- */
-@media (max-width: 1240px) {
-    /* side nav would overlap content: switch to a top bar */
+/* With the side nav showing, keep content clear of it: centered when there is room,
+   otherwise shifted right of the nav. */
+@media (min-width: 900px) {
+    .section,
+    .hero-inner,
+    .banner-inner {
+        margin-left: max(var(--nav-space), calc((100% - var(--col)) / 2));
+        margin-right: auto;
+        max-width: min(var(--col), calc(100% - var(--nav-space) - 24px));
+    }
+}
+
+@media (max-width: 899px) {
+    /* too narrow for a side column: switch to a top bar */
     .side-nav {
         position: sticky;
         top: 0;
@@ -354,7 +371,7 @@ footer {
     .side-nav .nav-name { margin: 0 6px 0 0; }
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1100px) {
     .grid { grid-template-columns: repeat(2, 1fr); }
 }
 

@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>art · Keru Wang</title>
+    <meta name="description" content="Things Keru Wang makes outside of research: paintings, a photo zine, SandScape (an installation at the MIT Museum), and shaders written by hand.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@200;300;400&family=Source+Sans+3:wght@400&family=Dawning+of+a+New+Day&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #ffffff;
+            --text: #2b2926;
+            --muted: #8b877e;
+            --placeholder: #f2f0eb;
+            --side-w: 240px;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            background: var(--bg);
+            color: var(--text);
+            font-family: "Source Sans 3", "Helvetica Neue", Arial, sans-serif;
+        }
+
+        a { color: var(--text); }
+
+        /* ---------- left column ---------- */
+        .side {
+            position: fixed;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            width: var(--side-w);
+            padding: 44px 28px 32px 44px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .back { font-size: 13px; color: var(--muted); text-decoration: none; letter-spacing: 0.04em; }
+        .back:hover { color: var(--text); }
+
+        .side h1 {
+            font-family: "Oswald", "Helvetica Neue", Arial, sans-serif;
+            font-weight: 200;
+            font-size: 2.3rem;
+            line-height: 1.02;
+            letter-spacing: 0.02em;
+            margin: 44px 0 34px;
+        }
+
+        .filters { display: flex; flex-direction: column; align-items: flex-start; gap: 9px; }
+        .filters button {
+            font-family: "Oswald", "Helvetica Neue", Arial, sans-serif;
+            font-weight: 300;
+            font-size: 13px;
+            letter-spacing: 0.16em;
+            text-transform: uppercase;
+            color: var(--muted);
+            background: none;
+            border: 0;
+            padding: 0;
+            cursor: pointer;
+        }
+        .filters button:hover { color: var(--text); }
+        .filters button[aria-pressed="true"] { color: var(--text); }
+        .filters button[aria-pressed="true"]::before { content: "— "; }
+
+        .side small { margin-top: auto; font-size: 12px; color: var(--muted); }
+
+        /* ---------- the wall ----------
+           Curated rather than measured: the zine opens on its own, the paintings hang as
+           small composed walls, and the screen pieces sit in an even grid. The script sizes everything. */
+        .wall {
+            margin-left: var(--side-w);
+            padding: 56px 48px 120px 12px;
+        }
+
+        .group + .group { margin-top: 150px; }
+        .group[hidden],
+        .item[hidden] { display: none; }
+
+        /* a quiet name over each group, in the side menu's type */
+        .group-label {
+            font-family: "Oswald", "Helvetica Neue", Arial, sans-serif;
+            font-weight: 300;
+            font-size: 12px;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: var(--muted);
+            text-align: center;
+            margin: 0 0 44px;
+        }
+        /* the zine keeps empty room above the book for turning pages; let the label sit in it */
+        .group[data-kind="zine"] .group-label { position: relative; margin-bottom: -96px; }
+
+        .opening { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 28px 64px; }
+
+        /* a composed wall: .across boxes sit side by side at one height, .down boxes stack at one width */
+        .compose { display: flex; justify-content: center; }
+        .compose + .compose { margin-top: 120px; }
+        .across, .down { display: flex; align-items: center; gap: var(--g, 26px); }
+
+        .tiles { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--tile-gap, 34px); margin: 0 auto; }
+
+        .item {
+            position: relative;
+            flex: none;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        .item img,
+        .item video { display: block; width: 100%; height: 100%; object-fit: cover; }
+
+        /* a canvas on the wall: a tight contact shadow plus a soft one falling below, like the zine's pages */
+        .item.painting {
+            overflow: visible;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.16), 0 22px 30px -16px rgba(0, 0, 0, 0.45);
+        }
+
+        .placeholder { background: var(--placeholder); }
+
+        /* an installation: its film on the wall with its name written across it in a thin white hand (a faint shadow
+           keeps it legible over the bright terrain; it fades in once its font is here); opens its own page */
+        .item.installation a { position: relative; display: block; width: 100%; height: 100%; }
+        .item.installation video { transition: transform 1.2s ease; }
+        .item.installation a:hover video { transform: scale(1.025); }
+        .item.installation a:focus-visible { outline: 2px solid var(--text); outline-offset: 4px; }
+        .item.installation .name { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.3)); }
+        .item.installation .name text { font-family: "Dawning of a New Day", cursive; font-size: 191px; fill: #fff; opacity: 0; transition: opacity 0.8s; }
+        .item.installation .name.ready text { opacity: 1; }
+        /* and under it, small, where it is shown and with whom, in the labels' type */
+        .item.installation a { container-type: inline-size; }
+        .item.installation .credit {
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 74%;
+            text-align: center;
+            color: #fff;
+            font-family: "Oswald", "Helvetica Neue", Arial, sans-serif;
+            font-weight: 400;
+            font-size: 12px;
+            font-size: clamp(8.5px, 1.45cqw, 13px);
+            line-height: 1.7;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6), 0 0 6px rgba(0, 0, 0, 0.5), 0 0 16px rgba(0, 0, 0, 0.35);
+            pointer-events: none;
+        }
+
+        .item.zine { overflow: visible; }
+        .item.zine iframe { width: 100%; height: 100%; border: 0; background: transparent; }
+
+        /* live pieces: a 400 × 400 canvas page scaled to fit, centered in the cell */
+        .stage400 { position: absolute; width: 400px; height: 400px; transform-origin: 0 0; }
+        .stage400 iframe { position: absolute; inset: 0; width: 400px; height: 400px; border: 0; background: transparent; }
+        /* the still is only a stand-in while the live piece loads: never let it catch the mouse */
+        .stage400 .still { position: absolute; inset: 0; width: 400px; height: 400px; transition: opacity 0.5s; pointer-events: none; }
+        .stage400.ready .still { opacity: 0; }
+        /* the shy triangle walks over the other pieces (and waits in the side menu) as a layer of her own: she
+           lets the mouse fall through to whatever is under her, and the page passes the mouse to her instead */
+        .item.creature { pointer-events: none; }
+
+
+        /* ---------- smaller screens ---------- */
+        @media (max-width: 1100px) {
+            :root { --side-w: 210px; }
+        }
+        @media (max-width: 760px) {
+            .side { position: static; width: auto; padding: 28px 16px 8px; }
+            .side h1 { margin: 26px 0 20px; font-size: 2rem; }
+            .filters { flex-direction: row; flex-wrap: wrap; gap: 8px 18px; }
+            .side small { display: none; }
+            .wall { margin-left: 0; padding: 24px 16px 72px; }
+            .group + .group { margin-top: 96px; }
+            .group-label { margin-bottom: 28px; }
+            .compose + .compose { margin-top: 72px; }
+        }
+    </style>
+</head>
+<body>
+
+<aside class="side">
+    <a class="back" href="index.html">← Keru Wang</a>
+    <h1>art</h1>  <!-- "art &amp;<br>baking" once the baking photos are up -->
+    <nav class="filters" aria-label="Show">
+        <button data-filter="all" aria-pressed="true">All</button>
+        <button data-filter="painting" aria-pressed="false">Paintings</button>
+        <button data-filter="zine" aria-pressed="false">Zine</button>
+        <button data-filter="installation" aria-pressed="false">Installation</button>
+        <button data-filter="graphics" aria-pressed="false">Shaders</button>
+        <!-- <button data-filter="food" aria-pressed="false">Baking</button>  (back with the photos) -->
+    </nav>
+    <small>&copy; 2026 Keru Wang</small>
+</aside>
+
+<!--
+    The wall. Sizes are chosen for the composition, not taken from the canvases.
+    Paintings hang as composed walls: inside a .compose, an .across box puts its pieces side by side at one
+    height and a .down box stacks them at one width, edges flush; data-a is a piece's width / height.
+    On phones a box stacks unless it says data-phone="across".
+    To add a painting:  <figure class="item painting" data-a="0.8"><img src="gallery/paintings/NAME.jpg" alt="..."></figure>
+-->
+<main class="wall" id="wall">
+
+    <section class="group" data-kind="painting">
+        <h2 class="group-label">Paintings</h2>
+
+        <!-- windows, in progress: a small painting set inside a large one. The first is done; its two
+             future insets hang either side of it at the inset's own size. Opens the wall with color. -->
+        <div class="compose" data-max="720">
+            <div class="across" data-phone="across" data-gap="2">
+                <figure class="item painting" data-a="1" data-rel="0.368"><img src="gallery/paintings/pink-swirl.jpg?v=3" alt="Painting: pink and orange swirls of cloud" loading="lazy"></figure>
+                <figure class="item painting" data-a="1"><img src="gallery/paintings/sun-window.jpg?v=3" alt="Painting: a red sun in a small square window among purple and green waves" loading="lazy"></figure>
+                <figure class="item painting" data-a="1" data-rel="0.368"><img src="gallery/paintings/calla-close.jpg?v=5" alt="Painting: a close-up of a dark calla lily on violet" loading="lazy"></figure>
+            </div>
+        </div>
+
+        <!-- night: the firefly tree, two small night skies stacked, and the cat in the green dark.
+             On phones the tree keeps the skies beside it and the cat hangs below. -->
+        <div class="compose" data-max="920">
+            <div class="across">
+                <div class="across" data-phone="across">
+                    <figure class="item painting" data-a="0.8"><img src="gallery/paintings/firefly-tree.jpg?v=2" alt="Painting: a tree of fireflies glowing in a dark field" loading="lazy"></figure>
+                    <div class="down">
+                        <figure class="item painting" data-a="1.4"><img src="gallery/paintings/night-sky.jpg?v=2" alt="Painting: blue clouds and two lights in a dark night sky" loading="lazy"></figure>
+                        <figure class="item painting" data-a="1.4"><img src="gallery/paintings/moon-leaves.jpg?v=2" alt="Painting: a crescent moon behind dark leaves on a blue night" loading="lazy"></figure>
+                    </div>
+                </div>
+                <figure class="item painting" data-a="1.25"><img src="gallery/paintings/cat-in-green.jpg?v=2" alt="Painting: a black cat walking out of dark green brushstrokes" loading="lazy"></figure>
+            </div>
+        </div>
+
+        <!-- on its own after the night wall: the cat at the door, a quieter grey-green -->
+        <div class="compose" data-max="300">
+            <div class="across">
+                <figure class="item painting" data-a="0.75"><img src="gallery/paintings/cat-at-the-door.jpg?v=2" alt="Painting: a black cat peeking around a doorway" loading="lazy"></figure>
+            </div>
+        </div>
+
+        <!-- resting for now:
+                <figure class="item painting" data-a="1.273"><img src="gallery/paintings/calla-lilies.jpg?v=3" alt="Painting: dark purple calla lilies in a pale green mist" loading="lazy"></figure>
+        -->
+
+    </section>
+
+    <section class="group" data-kind="zine">
+        <h2 class="group-label">Zine</h2>
+        <div class="opening">
+            <figure class="item zine">
+                <iframe id="zine-frame" src="zine.html?embed&amp;light&amp;v=5" title="dark book, a photo zine (turns its own pages; click or drag to take over)"></iframe>
+            </figure>
+        </div>
+    </section>
+
+    <!-- installation: SandScape, on permanent view at the MIT Museum. Its rendered landscape loops on the wall with
+         its name over it, and opens a page of its own (photos, credits, links). -->
+    <section class="group" data-kind="installation">
+        <h2 class="group-label">Installation</h2>
+        <div class="compose" data-max="854">
+            <div class="across">
+                <figure class="item installation" data-a="1.739">
+                    <a href="sandscape.html" aria-label="SandScape, an installation on permanent view at the MIT Museum">
+                        <video src="gallery/sandscape/loop.mp4?v=1" poster="gallery/sandscape/loop.jpg?v=1" muted loop playsinline preload="none" aria-hidden="true"></video>
+                        <svg class="name" viewBox="0 0 1000 575" aria-hidden="true">
+                            <!-- a little noise pushes the pen line about, so it reads as written by hand -->
+                            <filter id="by-hand" x="-5%" y="-30%" width="110%" height="160%">
+                                <feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="6"/>
+                                <feDisplacementMap in="SourceGraphic" scale="7" xChannelSelector="R" yChannelSelector="G"/>
+                            </filter>
+                            <text x="100" y="338" textLength="800" lengthAdjust="spacingAndGlyphs" filter="url(#by-hand)">SandScape</text>
+                        </svg>
+                        <span class="credit">Permanently exhibited at the MIT Museum<br>In collaboration with the MIT Media Lab</span>
+                    </a>
+                </figure>
+            </div>
+        </div>
+    </section>
+
+    <!-- shaders: every piece the same size; a row of three, a pair, then a coda.
+         First, things that look back (the eyes, flanked by the apple's eye and the cube's face);
+         then two skies side by side (the orange sunset and the storm cloud);
+         last, on her own, the shy triangle, as if she had been hiding at the end. -->
+    <section class="group" data-kind="graphics">
+        <h2 class="group-label">Shaders</h2>
+
+        <div class="compose" data-max="854" data-phone-max="250">
+            <div class="across" data-gap="2">
+                <figure class="item" data-a="1">
+                    <video src="gallery/media/hw6.mp4?v=2" poster="gallery/media/hw6.jpg?v=2" muted loop playsinline preload="none" aria-label="30th"></video>
+                </figure>
+                <figure class="item live" data-a="1"
+                    data-src="gallery/cg/hw3/index.html?embed&amp;bare&amp;follow&amp;v=4" data-still="gallery/media/hw3.jpg" data-title="Eye of Cthulhu"></figure>
+                <figure class="item" data-a="1">
+                    <video src="gallery/media/hw7.mp4" poster="gallery/media/hw7.jpg" muted loop playsinline preload="none" aria-label="Hello, Is Anyone There?"></video>
+                </figure>
+            </div>
+        </div>
+
+        <div class="compose" data-max="552" data-phone-max="250">
+            <div class="across" data-gap="2">
+                <figure class="item" data-a="1">
+                    <video src="gallery/media/hw1.mp4" poster="gallery/media/hw1.jpg" muted loop playsinline preload="none" aria-label="Orange"></video>
+                </figure>
+                <figure class="item live" data-a="1"
+                    data-src="gallery/cg/hw8/index.html?embed&amp;bare&amp;v=17" data-still="gallery/media/hw8.png?v=16" data-title="You Are the Wind"></figure>
+            </div>
+        </div>
+        </div>
+
+        <div class="compose" data-max="250" data-phone-max="250">
+            <div class="across">
+                <figure class="item live creature" data-a="1"
+                    data-src="gallery/cg/hw4/index.html?embed&amp;light&amp;bare&amp;follow&amp;v=12" data-still="gallery/media/hw4.png" data-title="A Shy Nay"></figure>
+            </div>
+        </div>
+    </section>
+
+    <!-- baking: back on the wall once there are photos, e.g.
+    <section class="group" data-kind="food">
+        <div class="tiles">
+            <figure class="item tile"><img src="gallery/food/NAME.jpg" alt="..."></figure>
+        </div>
+    </section>
+    -->
+
+</main>
+
+<script>
+(function () {
+    var wall = document.getElementById('wall');
+    var items = Array.prototype.slice.call(wall.querySelectorAll('.item'));
+    var groups = Array.prototype.slice.call(wall.querySelectorAll('.group'));
+    function kindOf(item) { return item.dataset.kind || item.closest('.group').dataset.kind; }
+    var zineFrame = document.getElementById('zine-frame');
+    var zineHeight = 0;
+    var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    // ---------- layout ----------
+    // A composition is a tree of .across and .down boxes with pieces at the leaves. Every box's width is a
+    // straight-line function of its height, w = p·h + q (q gathers the gaps inside it), so a whole wall can be
+    // sized exactly for any width with its edges flush. A piece in an .across row may hang at a fraction of
+    // the row's height (data-rel), centered on it (in a stack, of its width); a box may widen its own gaps
+    // (data-gap, a multiple).
+    function measure(el, phone, g, inDown) {
+        if (el.classList.contains('item')) {
+            // a smaller piece takes a fraction of its row's height, or of its stack's width (on phones rows stack)
+            var a = parseFloat(el.dataset.a), rel = parseFloat(el.dataset.rel) || 1;
+            return { el: el, dir: 'item', p: inDown ? a / rel : a * rel, q: 0, rel: rel, kids: [] };
+        }
+        var dir = el.classList.contains('across') ? 'across' : 'down';
+        if (phone) dir = el.dataset.phone || 'down';
+        var kids = Array.prototype.map.call(el.children, function (k) { return measure(k, phone, g, dir === 'down'); });
+        var gap = g * (parseFloat(el.dataset.gap) || 1);
+        var gaps = gap * (kids.length - 1), p = 0, q = 0;
+        if (dir === 'across') {
+            kids.forEach(function (k) { p += k.p; q += k.q; });
+            q += gaps;
+        } else {
+            var inv = 0, off = 0;
+            kids.forEach(function (k) { inv += 1 / k.p; off += k.q / k.p; });
+            p = 1 / inv;
+            q = (off - gaps) * p;
+        }
+        return { el: el, dir: dir, p: p, q: q, gap: gap, kids: kids };
+    }
+
+    function place(n, w, h) {
+        if (n.dir === 'item') return size(n.el, w, h);
+        n.el.style.width = w + 'px';
+        n.el.style.height = h + 'px';
+        n.el.style.flexDirection = n.dir === 'across' ? 'row' : 'column';
+        n.el.style.gap = n.gap + 'px';
+        n.kids.forEach(function (k) {
+            if (n.dir === 'across') place(k, k.p * h + k.q, h * (k.rel || 1));
+            else place(k, w * (k.rel || 1), (w - k.q) / k.p);
+        });
+    }
+
+    function size(item, w, h) {
+        item.style.width = w + 'px';
+        item.style.height = h + 'px';
+        item._px = { w: w, h: h };
+        var stage = item.querySelector('.stage400');
+        if (stage) fitStage(item, stage);
+    }
+
+    function layout() {
+        var cs = getComputedStyle(wall);
+        var inner = wall.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+        var phone = inner < 640;
+        var g = phone ? 14 : 26;
+        wall.style.setProperty('--g', g + 'px');
+
+        // the opening: the zine on its own
+        var zw = Math.min(inner, 660);
+        size(zineFrame.closest('.item'), zw, zineHeight || zw / 1.45);
+
+        // the painting walls
+        Array.prototype.forEach.call(wall.querySelectorAll('.compose'), function (c) {
+            var root = measure(c.firstElementChild, phone, g);
+            var w = Math.min(inner, parseFloat(phone && c.dataset.phoneMax || c.dataset.max));   // data-phone-max: its width on phones
+            place(root, w, (w - root.q) / root.p);
+        });
+
+        // an even grid, four across (two on phones): kept for the baking photos
+        Array.prototype.forEach.call(wall.querySelectorAll('.tiles'), function (row) {
+            var tg = phone ? 14 : 32, n = phone ? 2 : 4;
+            var t = Math.min(210, (Math.min(inner, 920) - tg * (n - 1)) / n);
+            row.style.setProperty('--tile-gap', tg + 'px');
+            row.style.maxWidth = n * t + (n - 1) * tg + 1 + 'px';
+            Array.prototype.forEach.call(row.children, function (el) { size(el, t, t); });
+        });
+    }
+
+    function fitStage(item, stage) {
+        var s = Math.min(item._px.w, item._px.h) / 400;
+        stage.style.transform = 'scale(' + s + ')';
+        stage.style.left = (item._px.w - 400 * s) / 2 + 'px';
+        stage.style.top = (item._px.h - 400 * s) / 2 + 'px';
+    }
+
+    // ---------- filters ----------
+    var buttons = document.querySelectorAll('.filters button');
+    Array.prototype.forEach.call(buttons, function (btn) {
+        btn.addEventListener('click', function () {
+            var f = btn.dataset.filter;
+            Array.prototype.forEach.call(buttons, function (b) { b.setAttribute('aria-pressed', b === btn ? 'true' : 'false'); });
+            items.forEach(function (item) { item.hidden = f !== 'all' && kindOf(item) !== f; });
+            groups.forEach(function (g) { g.hidden = !g.querySelector('.item:not([hidden])'); });
+            layout();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+    });
+
+    // ---------- the zine ----------
+    window.addEventListener('message', function (e) {
+        if (e.origin !== location.origin || e.source !== zineFrame.contentWindow) return;
+        if (e.data && e.data.zineHeight && Math.abs(e.data.zineHeight - zineHeight) > 2) {
+            zineHeight = e.data.zineHeight;
+            layout();
+        }
+    });
+
+    // ---------- 400 × 400 canvas pieces ----------
+    function makeStage(item) {
+        var stage = document.createElement('div');
+        stage.className = 'stage400';
+        var still = document.createElement('img');
+        still.className = 'still';
+        still.src = item.dataset.still;
+        still.alt = '';
+        stage.appendChild(still);
+        item.appendChild(stage);
+        return stage;
+    }
+    function startFrame(item, stage) {
+        if (stage.querySelector('iframe')) return;
+        var iframe = document.createElement('iframe');
+        iframe.src = item.dataset.src;
+        iframe.title = item.dataset.title;
+        iframe.addEventListener('load', function () { setTimeout(function () { stage.classList.add('ready'); }, 700); });
+        stage.insertBefore(iframe, stage.firstChild);
+    }
+    function stopFrame(stage) {
+        var iframe = stage.querySelector('iframe');
+        if (iframe) iframe.remove();
+        stage.classList.remove('ready');
+    }
+
+    // live pieces (HW3, HW4, HW8): running whenever on screen, so hovering interacts right away
+    items.filter(function (i) { return i.classList.contains('live'); }).forEach(function (item) {
+        var stage = makeStage(item);
+        if (!('IntersectionObserver' in window)) return startFrame(item, stage);
+        new IntersectionObserver(function (entries) {
+            entries.forEach(function (e) { e.isIntersecting ? startFrame(item, stage) : stopFrame(stage); });
+        }, { rootMargin: '300px 0px' }).observe(item);
+    });
+
+    // ---------- the eyes and the shy triangle keep watching the mouse anywhere on the page ----------
+    // While the mouse is over this page (not over their own frames), send its position into their frames,
+    // in the frames' own pixels; each frame treats it as the nearest point on its canvas's edge.
+    var followers = items.filter(function (i) { return /[?&]follow\b/.test(i.dataset.src || ''); });
+    var pointer = null, pointerFrame = 0;
+    var shyGaze = null;   // when set, what the shy triangle looks at instead of the mouse (see below)
+    var shyLook = null;   // ...and which way her pupil points for it, -1..1 across and down
+    function sendPointer() {
+        pointerFrame = 0;
+        if (!pointer) return;
+        followers.forEach(function (item) {
+            var f = item.querySelector('iframe');
+            if (!f || !f.contentWindow) return;
+            var r = f.getBoundingClientRect(), s = r.width / 400;     // a 400 px page, scaled by its stage
+            var msg = { kwPointer: [(pointer[0] - r.left) / s, (pointer[1] - r.top) / s] };
+            if (item.classList.contains('creature')) {
+                if (shyGaze) {
+                    // a softer map than the mouse's: 450 px of page reaches the edge of her view, so a page turning
+                    // across the zine sweeps her eye and body instead of pinning them to one side
+                    var k = 200 / 450;
+                    msg.kwPointer = [200 + (shyGaze[0] - (r.left + r.width / 2)) * k, 200 + (shyGaze[1] - (r.top + r.height / 2)) * k];
+                }
+                msg.kwWalking = !!striding;   // sent along every time, so a frame that loads late still hears it
+                msg.kwLook = shyGaze ? shyLook : null;
+            }
+            f.contentWindow.postMessage(msg, location.origin);
+        });
+    }
+    function queuePointer() { if (!pointerFrame) pointerFrame = requestAnimationFrame(sendPointer); }
+    if (followers.length) {
+        document.addEventListener('mousemove', function (e) { pointer = [e.clientX, e.clientY]; queuePointer(); });
+        window.addEventListener('scroll', queuePointer, { passive: true });
+    }
+
+    // ---------- the shy triangle wanders after the mouse ----------
+    // Wherever the mouse is on the page she walks toward it (quickly from far off, slowing as she arrives),
+    // a layer over everything in the main column, and stops a little way off, watching. While she walks she
+    // faces where she is going; once she stops, come closer and her own running away (inside her frame) takes
+    // over. She waits in the side menu until the mouse first moves, and when the mouse leaves the window she
+    // lingers wherever she is. Left near the zine with the mouse resting, she watches its pages turn. Mouse
+    // only; she stays home on touch screens.
+    var shy = items.filter(function (i) { return /cg\/hw4\//.test(i.dataset.src || ''); })[0];
+    if (shy && !reduceMotion && window.matchMedia('(hover: hover)').matches) {
+        var area = function () {                  // where she may walk: the main column, as far as it is on screen
+            var w = wall.getBoundingClientRect(), cs = getComputedStyle(wall);
+            return { left: w.left + parseFloat(cs.paddingLeft), right: w.right - parseFloat(cs.paddingRight), top: 0, bottom: innerHeight };
+        };
+        var KEEP = 150, EASE = 0.05;             // how near she comes (center to mouse); the share of the way she covers each frame
+        var off = [0, 0], cursor = null, walking = 0, striding = false, lastMove = 0;
+
+        // Where she waits before the mouse first moves: in the side menu, in the empty space under the
+        // filters (on narrow windows the menu sits above the wall, so to the right of the title and filters).
+        var side = document.querySelector('.side'), filters = side.querySelector('.filters'), foot = side.querySelector('small');
+        var perched = true;
+        var perch = function (r) {
+            var f = filters.getBoundingClientRect(), s = side.getBoundingClientRect(), cs = getComputedStyle(side);
+            if (cs.position !== 'fixed')
+                return [Math.min(f.right + r.width / 2, innerWidth - r.width / 2), (side.querySelector('h1').getBoundingClientRect().top + f.bottom) / 2];
+            var floor = foot.getBoundingClientRect().top;
+            return [(s.left + parseFloat(cs.paddingLeft) + s.right - parseFloat(cs.paddingRight)) / 2, (f.bottom + floor) / 2];
+        };
+
+        // When the mouse has been still for a moment and she is near the zine, she watches it instead: the
+        // sheet that is turning while a page turns (so her eye sweeps across with it), the book between turns.
+        var IDLE = 1200, NEAR = 450;
+        var watchZine = function (c) {
+            if (performance.now() - lastMove < IDLE) return null;
+            var doc;
+            try { doc = zineFrame.contentDocument; } catch (e) { return null; }
+            var book = doc && doc.getElementById('book');
+            if (!book) return null;
+            var fr = zineFrame.getBoundingClientRect(), b = book.getBoundingClientRect();
+            var box = { left: fr.left + b.left, right: fr.left + b.right, top: fr.top + b.top, bottom: fr.top + b.bottom };
+            if (box.bottom < 0 || box.top > innerHeight) return null;                  // the zine is off screen
+            var dx = Math.max(box.left - c[0], 0, c[0] - box.right), dy = Math.max(box.top - c[1], 0, c[1] - box.bottom);
+            if (Math.hypot(dx, dy) > NEAR) return null;
+            var turning = doc.querySelector('.turning'), t = turning ? turning.getBoundingClientRect() : b;
+            var at = [fr.left + (t.left + t.right) / 2, fr.top + (t.top + t.bottom) / 2];
+            // Her pupil rests three quarters of the way toward the zine, as if reading it (250 px of page is the full
+            // way), and the turning sheet moves it through the rest: from over the right page to the left.
+            var clamp = function (v) { return Math.max(-1, Math.min(1, v)); };
+            var bc = [fr.left + (b.left + b.right) / 2, fr.top + (b.top + b.bottom) / 2];
+            var sheet = [clamp((at[0] - bc[0]) / (b.width / 4)), clamp((at[1] - bc[1]) / (b.height / 2))];
+            shyLook = [clamp(.75 * clamp((bc[0] - c[0]) / 250) + .3 * sheet[0]),
+                       clamp(.75 * clamp((bc[1] - c[1]) / 250) + .3 * sheet[1])];
+            return at;
+        };
+        var tellStriding = function (now) {
+            if (now === striding) return;
+            striding = now;
+            var f = shy.querySelector('iframe');
+            if (f && f.contentWindow) f.contentWindow.postMessage({ kwWalking: now }, location.origin);
+        };
+
+        var walk = function () {
+            walking = 0;
+            var r = shy.getBoundingClientRect(), sr = area();
+            var c = [r.left + r.width / 2, r.top + r.height / 2];
+            var home = [c[0] - off[0], c[1] - off[1]];
+            if (perched) {                        // sitting in the side menu: she stays with it as the page scrolls
+                var p = perch(r);
+                off = [p[0] - home[0], p[1] - home[1]];
+                shy.style.transform = 'translate(' + off[0].toFixed(1) + 'px, ' + off[1].toFixed(1) + 'px)';
+                shy.style.zIndex = 5;
+                return;
+            }
+            var inside = !!cursor;
+            shyGaze = inside ? watchZine(c) : null;
+            var target = c;                       // with the mouse gone, she lingers where she is
+            if (inside) {
+                var v = [cursor[0] - c[0], cursor[1] - c[1]], d = Math.hypot(v[0], v[1]);
+                target = d > KEEP ? [c[0] + v[0] * (1 - KEEP / d), c[1] + v[1] * (1 - KEEP / d)] : c;
+                // keep her whole frame inside her area
+                target = [Math.min(Math.max(target[0], sr.left + r.width / 2), sr.right - r.width / 2),
+                          Math.min(Math.max(target[1], sr.top + r.height / 2), sr.bottom - r.height / 2)];
+            }
+            var m = [(target[0] - c[0]) * EASE, (target[1] - c[1]) * EASE], len = Math.hypot(m[0], m[1]);
+            if (len > 40) m = [m[0] * 40 / len, m[1] * 40 / len];   // never a jump, even across a big screen
+            off = [off[0] + m[0], off[1] + m[1]];
+            tellStriding((striding ? len > 0.3 : len > 0.8) || !!shyGaze);   // watching the zine counts too: no flinching
+            var away = Math.hypot(off[0], off[1]) > 0.5;
+            shy.style.transform = away ? 'translate(' + off[0].toFixed(1) + 'px, ' + off[1].toFixed(1) + 'px)' : '';
+            shy.style.zIndex = away ? 5 : '';
+            if (followers.length) queuePointer();    // she moved, so the mouse moved relative to her
+            if (inside) walking = requestAnimationFrame(walk);
+        };
+        var wake = function () { if (!walking) walking = requestAnimationFrame(walk); };
+        document.addEventListener('mousemove', function (e) {
+            cursor = [e.clientX, e.clientY]; lastMove = performance.now(); perched = false; wake();
+        });
+        // pressing on her still frightens her: pass presses over her frame along, with where they land in it,
+        // so she can tell a press on her from one beside her
+        var press = function (down) {
+            return function (e) {
+                var f = shy.querySelector('iframe'), r = f && f.getBoundingClientRect();
+                if (!r || !f.contentWindow) return;
+                if (!down || (e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom)) {
+                    var s = r.width / 400;
+                    f.contentWindow.postMessage({ kwPress: down, kwAt: [(e.clientX - r.left) / s, (e.clientY - r.top) / s] }, location.origin);
+                }
+            };
+        };
+        document.addEventListener('mousedown', press(true));
+        document.addEventListener('mouseup', press(false));
+        document.documentElement.addEventListener('mouseleave', function () { cursor = null; wake(); });
+        window.addEventListener('scroll', wake, { passive: true });
+        // the wall settling (fonts, the zine's height) moves her place in it; while she waits, put her back
+        if ('ResizeObserver' in window) new ResizeObserver(wake).observe(wall);
+        wake();
+    }
+
+    // ---------- SandScape's name waits for its handwriting font (never a stretched stand-in) ----------
+    Array.prototype.forEach.call(wall.querySelectorAll('.item.installation .name'), function (name) {
+        var show = function () { name.classList.add('ready'); };
+        if (document.fonts && document.fonts.load) document.fonts.load('191px "Dawning of a New Day"').then(show, show);
+        else show();
+    });
+
+    // ---------- videos and the zine run only while on screen ----------
+    if ('IntersectionObserver' in window) {
+        var vio = new IntersectionObserver(function (entries) {
+            entries.forEach(function (e) {
+                var v = e.target;
+                if (e.isIntersecting && !reduceMotion) { v.preload = 'auto'; v.play().catch(function () {}); }
+                else v.pause();
+            });
+        }, { threshold: 0.3 });
+        Array.prototype.forEach.call(wall.querySelectorAll('video'), function (v) { vio.observe(v); });
+
+        new IntersectionObserver(function (entries) {
+            entries.forEach(function (e) {
+                if (zineFrame.contentWindow) zineFrame.contentWindow.postMessage(e.isIntersecting ? 'zine:visible' : 'zine:hidden', location.origin);
+            });
+        }, { threshold: 0.25 }).observe(zineFrame);
+    }
+
+    layout();
+    new ResizeObserver(layout).observe(wall);
+})();
+</script>
+</body>
+</html>

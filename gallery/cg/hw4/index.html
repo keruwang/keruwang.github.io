@@ -1,0 +1,423 @@
+<script src="../embed.js?v=4"></script>
+<script src="lib3.js?v=3"></script>
+
+<body bgcolor=black text=white link=white alink=white vlink=white>
+<center>
+<canvas id='canvas1' onmousemove="showCoords(event)"  onmousedown="shrink(event)" onmouseup="enlarge()" width=400 height=400></canvas>
+
+<br>
+<input type=range min=1 max=100 value=0 class=slider id=slider1>
+
+<!-- <template name="myTemplate>
+<input id="slider" type="range" min="50" max="100" step="10"  value="50">
+<output id="output"></output>
+</template> -->
+
+</center>
+</body>
+
+<!!-------- VERTEX SHADER: YOU PROBABLY DON'T WANT TO CHANGE THIS RIGHT NOW -------->
+
+<script id='my_vertex_shader' type='x-shader/x-vertex'>
+   uniform mat4 uMat;
+   attribute vec3 aPos;
+   varying   vec3 vPos;
+   void main() {
+      gl_Position = uMat * vec4(aPos, 1.);
+      vPos = aPos;
+   }
+</script>
+
+<!!-------- FRAGMENT SHADER: THIS IS WHERE YOU WILL DO YOUR WORK -------->
+
+<script id='my_fragment_shader' type='x-shader/x-fragment'>
+
+  float disk(float x, float y, float centerX, float centerY, float r) {
+    return step((x-centerX) * (x-centerX) + (y-centerY) * (y-centerY),r * r);
+   }
+
+  float strokeDisk(float x, float y, float centerX, float centerY, float r, float strokeWeight){
+     if((x-centerX) * (x-centerX) + (y-centerY) * (y-centerY)<=r * r + strokeWeight&&(x-centerX) * (x-centerX) + (y-centerY) * (y-centerY)>=r * r - strokeWeight){
+       return 1.;
+     }
+     return .0;
+   }
+
+ float edge(vec2 xy, float a, float b, float c) {
+    return step(a * xy.x + b * xy.y + c, 0.);
+ }
+
+ float curveEdge(vec2 xy, float a, float b, float c) {
+    return step(a * xy.x * xy.x + b * xy.y + c, 0.);
+ }
+
+ float onCurveEdge(vec2 xy, float a, float b, float c,float w) {
+   if (a * xy.x * xy.x + b * xy.y + c >= - w && a * xy.x * xy.x + b * xy.y + c <= w) return 1.;
+    return 0.;
+ }
+
+ uniform float uTime;   // TIME, IN SECONDS
+ uniform vec2 uTear;
+ uniform vec2 uEye;
+ uniform float uEyeR;
+ uniform float uShockness;
+ uniform float uEyeOpenness;
+ uniform float uThetaX;
+ uniform float uH;
+ uniform float uUw;
+ uniform float uLw;
+ varying vec3 vPos;     // -1 < vPos.x < +1
+                        // -1 < vPos.y < +1
+                        //      vPos.z == 0
+
+
+ void main() {
+   float x1 = -uUw;
+   float y1 = .5 + (uH/2.);
+   float x2 = -uLw;
+   float y2 = .5 - (uH/2.);
+   // if(uThetaX<0.&&(((vPos.x-x1)/(x2 - x1))==((vPos.y-y1)/(y2 - y1)))) return;
+   // if(uThetaX<0.&&uUw==uLw&&vPos.x==-uUw) return;
+    vec3 color = vPos + vec3(.6,.1,.4);
+    float pupil = disk(vPos.x,vPos.y, uEye.x,uEye.y, uEyeR);
+    float upEye = curveEdge(vPos.xy, uShockness,-1.,.4);
+    float downEye = 1. - curveEdge(vPos.xy, -uShockness*uEyeOpenness,-1.,.5+.1*uEyeOpenness);
+    float strokeUpEye = onCurveEdge(vPos.xy, uShockness,-1.,.4,.002);
+    float strokeDownEye = onCurveEdge(vPos.xy, -uShockness*uEyeOpenness,-1.,.5+.1*uEyeOpenness,.007);
+    if(vPos.z< 0.){
+      color = mix(color,vec3(1.,1.,1.),upEye*downEye);
+      color = mix(color,vec3(.0,.0,.0),pupil*upEye*downEye);
+      color = mix(color,vec3(0.,0.,0.),strokeUpEye*upEye*downEye);
+      color = mix(color,vec3(0.,0.,0.),strokeDownEye*upEye*downEye);
+      if(uEyeOpenness<-.5||uTear.y>-.05){
+        float tear = disk(vPos.x*1.5,vPos.y,uTear.x,uTear.y,.05);
+        color = mix(color,vec3(.0,.0,1.),tear);
+      }
+    }
+    gl_FragColor = vec4(sqrt(color), 1.0);
+ }</script>
+
+<!!-------- CREATE A PROPERLY DESCRIPTIVE TITLE BELOW -------->
+
+<script id='my_title' type='text/html'>
+A SHY NAY
+</script>
+
+<!!-------- HERE IS WHERE YOU CAN PROVIDE A LONGER TEXT DESCRIPTION -------->
+
+<script id='my_instructions' type='text/html'><font color=#b0b0b0>
+  This is a shy Nay.<br><br>
+  Try to play with Nay using your <span style="background-color: #E09C01"><font color="white">cursor</font></span>. Nay will try her best to get away from it. She will cry if you get too close.<br><br>
+  Also, <span style="background-color: #E09C01"><font color="white">long press</font></span> your mouse to freak her out!<br><br>
+  Try dragging the <span style="background-color: #E09C01"><font color="white">slider</font></span> to see Nay morph.<br><br>
+  There are few bugs though -- <br>
+  1. The sides of Nay sometimes are not showing up in the correct top-down order.<br>
+  2. After morphing once, if Nay cry, her teardrops will go nuts. I think it might because I call the gl_start function multiple times without terminating the previous ones.<br><br>
+  I'm still trying to solve these problems (and maybe I will turn for help during the next week's office hours if I cannot figure that out :-P)!
+</script>
+
+<!!-------- YOU PROBABLY DON'T WANT TO CHANGE ANYTHING BELOW FOR NOW -------->
+
+<script>
+
+// CREATE THE HTML DOCUMENT
+
+
+let vs = my_vertex_shader.innerHTML,
+    fs = my_fragment_shader.innerHTML;
+    fs = fs.substring(1, fs.length);
+
+document.body.innerHTML = [''
+   ,'<center><font size=6 color=#b0b0b0>' + my_title.innerHTML + '</center>'
+   ,'<TABLE cellspacing=0 cellpadding=0><TR>'
+   ,'<td width=50></td><td><font color=red size=5><div id=errorMessage>&nbsp;</div></font></td>'
+   ,'</TR><TR>'
+   ,'<table cellspacing=10>'
+   ,'<tr>'
+   ,'<td valign=top><font size=2 color=red><div id=errorMarker>&nbsp;</div></font></td>'
+   ,'<td valign=top>'
+   ,'<textArea id=textArea spellcheck=false '
+   ,'style="font:16px courier;outline-width:0;border-style:none;resize:none;overflow:scroll;"'
+   ,'></textArea>'
+   ,'</td><td valign=top>' + document.body.innerHTML + '</td>'
+   ,'<td valign=top><font size=5>' + my_instructions.innerHTML + '</td>'
+   ,'</tr></table>'
+   ,'</TR></TABLE>'
+   ].join('');
+
+// SET UP THE EDITABLE TEXT AREA ON THE LEFT SIDE.
+
+
+
+let text = fs.split('\n'), cols = 0;
+for (let i = 0 ; i < text.length ; i++)
+   cols = Math.max(cols, text[i].length);
+
+textArea.rows = text.length;
+textArea.cols = 50;
+textArea.value = fs;
+textArea.style.backgroundColor = '#202020';
+textArea.style.color = 'white';
+
+// REPARSE THE SHADER PROGRAM AFTER EVERY KEYSTROKE.
+
+textArea.onkeyup = function() { canvas1.setShaders(vs, this.value); }
+
+// SET THE CURRENT TIME IN SECONDS BEFORE RENDERING EACH FRAME.
+
+let startTime = Date.now();
+let prevTime = startTime, rate = 1;
+let x = 0;
+let y = .5;
+let mx = 500;
+let my = 500;
+let pmx = 500;
+let pmy = 500;
+let tsize = .75;
+let size = .75;
+let mouseDown = false;
+let tearX = 0.;
+let tearY = -.1;
+let tEyeOpenness = 1;
+let eyeOpenness = 1;
+let shockness = 3;
+let cry = false;
+let thetaX = 0;
+let thetaY = 0;
+let eyeX = 0;
+let eyeY = .5;
+let eyeR = .05;
+// In the gallery Nay walks after the mouse. While she is walking the page says so: she stops dodging,
+// comes back to the middle of her frame and faces where she is going.
+let walking = false;
+// ...and when she is watching something on the page (the zine's turning pages), where her pupil should sit
+let look = null;
+window.addEventListener('message', function(e) {
+  if (e.origin !== location.origin || !e.data) return;
+  if (typeof e.data.kwWalking === 'boolean') walking = e.data.kwWalking;
+  if ('kwLook' in e.data) look = e.data.kwLook;
+});
+
+
+// THIS METHOD GETS CALLED WHENEVER USER ADJUSTS THE SLIDER.
+
+slider1.oninput = function() {
+   rate = this.value / 100;
+   gl_start(canvas1, vs, fs);
+}
+function showCoords(event) {
+  let r = canvas1.getBoundingClientRect();
+  mx = -1 + 2 * (event.clientX - r.left) / r.width;
+  my = -1 + 2 * (event.clientY - r.top) / r.height;
+}
+
+// Is a press on Nay herself? Her body is drawn as a triangle strip: test the press against each of its
+// triangles, where the last frame drew them.
+function onNay(event) {
+  let r = canvas1.getBoundingClientRect();
+  let px = -1 + 2 * (event.clientX - r.left) / r.width, py = 1 - 2 * (event.clientY - r.top) / r.height;
+  let m = matrix.getValue(), mesh = canvas1.mesh || vertices, p = [];
+  for (let i = 0; i < mesh.length; i += 3)
+    p.push([m[0]*mesh[i] + m[4]*mesh[i+1] + m[8]*mesh[i+2] + m[12],
+            m[1]*mesh[i] + m[5]*mesh[i+1] + m[9]*mesh[i+2] + m[13]]);
+  let side = (a, b) => (b[0]-a[0])*(py-a[1]) - (b[1]-a[1])*(px-a[0]);
+  for (let i = 0; i + 2 < p.length; i++) {
+    let a = p[i], b = p[i+1], c = p[i+2];
+    if (Math.abs((b[0]-a[0])*(c[1]-a[1]) - (b[1]-a[1])*(c[0]-a[0])) < 1e-6) continue;   // a strip's flat joins
+    let s1 = side(a, b), s2 = side(b, c), s3 = side(c, a);
+    if ((s1 >= 0 && s2 >= 0 && s3 >= 0) || (s1 <= 0 && s2 <= 0 && s3 <= 0)) return true;
+  }
+  return false;
+}
+
+function shrink(event){
+  // in the gallery only a press on her frightens her, not one beside her
+  if(window.KW_FOLLOW && event && !onNay(event)) return;
+  tsize = .6;
+  cry = true;
+  mouseDown = true;
+}
+
+function enlarge(){
+  tsize = .75;
+  cry = false;
+  mouseDown = false;
+}
+
+function animate(gl) {
+      let ah = 1*(1.-.3*rate);
+      let alw = .5*(1.-.3*rate);
+      let auw = alw*rate;
+      vertices = [
+       -auw,.5+(ah/2),auw, -alw,.5-(ah/2),alw, auw,.5+(ah/2),auw,
+       alw,.5-(ah/2),alw, auw,.5+(ah/2),-auw, alw,.5-(ah/2),-alw,
+       -auw,.5+(ah/2),-auw, -alw,.5-(ah/2),-alw, -auw,.5+(ah/2),auw, -alw,.5-(ah/2),alw,
+       -alw,.5-(ah/2),alw, -auw,.5+(ah/2),-auw,
+       -auw,.5+(ah/2),-auw, -auw,.5+(ah/2),auw, auw,.5+(ah/2),-auw, auw,.5+(ah/2),auw,
+      ];
+
+   let time = (Date.now() - startTime) / 1000;
+   // VARY ROTATION RATE, DEPENDING ON SLIDER VALUE.
+   if(cry == true){
+     if(mouseDown==false) tEyeOpenness = -.9;
+     if(tearY>-.05){
+       tearY += .1*(-.1 - tearY);
+     } else{
+       tearY = .35;
+     }
+   } else{
+     tEyeOpenness = 1.;
+     tearY += .1*(-.1 - tearY);
+   }
+   // SET A UNIFORM OF TYPE float.
+
+   setUniform('1f', 'uTime', time);
+   setUniform('1f', 'uShockness', shockness);
+   setUniform('1f', 'uEyeR', eyeR);
+   eyeOpenness += .5*(tEyeOpenness - eyeOpenness);
+
+   setUniform('1f', 'uEyeOpenness', eyeOpenness);
+   setUniform('2fv','uTear',[tearX,tearY]);
+   setUniform('Matrix4fv', 'uM', false, [
+      .025,.025,.1,0.,  .5,.5,.2,0.,  0.,0.,0.,0.,  1,1,1,0,
+      .0  ,.02 ,.0,0.,  .0,.5,.0,0.,  0.,0.,0.,0.,  0,1,0,0
+   ]);
+
+   matrix.identity();
+   if(mouseDown==true){
+       shockness = 8;
+       tEyeOpenness = 1.;
+       eyeX = 0;
+       eyeY = .5;
+       eyeR = .03;
+       matrix.translate(x+.15*(Math.random()-.5), -y+.15*(Math.random()-.5), 0);
+   }else if(mouseDown==false){
+      shockness = 3;
+      eyeR = .05;
+      matrix.translate(x, -y, 0);
+   }
+   if(walking){
+     x += .15*(0 - x);
+     y += .15*(.5 - y);
+     if(mouseDown==false) cry = false;
+   }else if(Math.sqrt((x-mx)*(x-mx)+(y-my-.5)*(y-my-.5))<.8){
+     if(Math.sqrt((x-mx)*(x-mx)+(y-my-.5)*(y-my-.5))<.3) cry = true;
+     if(mx>x){
+       if(x>-.5) x-=.6*Math.min(Math.abs(mx-pmx),.2);
+     } else {
+       if(x<.5) x+= .6*Math.min(Math.abs(mx-pmx),.2);
+     }
+     if(my>y-.5){
+       if(y-.5>-.5) y-=.6*Math.min(Math.abs(my-pmy),.2);
+     } else {
+       if(y-.5<.5) y+= .6*Math.min(Math.abs(my-pmy),.2);
+     }
+   }else if(mouseDown==false){
+     cry = false;
+   }
+   // In the gallery she turns toward the mouse while it is a bit far (walking after it, or watching it);
+   // once it comes close she turns away, shyly, as she always has.
+   let far = walking || Math.sqrt((x-mx)*(x-mx)+(y-my-.5)*(y-my-.5)) >= .8;
+   let toward = window.KW_FOLLOW && far;
+   let turn = toward ? (mx-x) : (x-mx);
+   let tilt = toward ? -(y-my-.5) : (y-my-.5);
+   if(mx<=1&&my<=1){
+     thetaX += .1*(turn-thetaX);
+     thetaY += .1*(tilt-thetaY);
+   }
+   matrix.rotateY(-thetaX);
+   matrix.rotateX(-.5*thetaY);
+   matrix.rotateZ(.1*Math.sin(time));
+   size += .5*(tsize-size);
+   matrix.scale(size, size, size);
+   setUniform('Matrix4fv', 'uMat', false, matrix.getValue());
+
+     if(look){
+       // watching something: glide the pupil to it (-1..1 maps across her eye, left to right; up to down).
+       // It may go further than the mouse ever takes it, right into the corner of her eye (.11), for a sideways look.
+       eyeX += .25*(.11*look[0] - eyeX);
+       eyeY += .25*(.5 - .05*look[1] - eyeY);
+     }else if(mx<x){
+       if(eyeX>-.07)eyeX-=.05*Math.min(Math.abs(mx-x),.2);
+     }else if(mx>x){
+       if(eyeX<.07)eyeX+=.05*Math.min(Math.abs(mx-x),.2);
+     }
+     if(!look && my>y-.5){
+       if(eyeY>.45)eyeY-=.03*Math.min(Math.abs(my-y),.2);
+     }else if(!look && my<y-.5){
+       if(eyeY<.55)eyeY+=.03*Math.min(Math.abs(my-y),.2);
+     }
+
+   setUniform('2fv','uEye',[eyeX,eyeY]);
+   setUniform('1f','uThetaX',thetaX);
+   setUniform('1f','uH',ah);
+   setUniform('1f','uUw',auw);
+   setUniform('1f','uLw',alw);
+   pmx = mx;
+   pmy = my;
+}
+
+// HERE I AM PARTLY DEFINING A NEW OBJECT CLASS OF TYPE MATRIX.
+
+function Matrix() {
+   this.identity = function() {
+      value = [1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1];
+      return this;
+   }
+   this.translate = function(x, y, z) {
+      let m = [1,0,0,0, 0,1,0,0, 0,0,1,0, x,y,z,1]; // (1) CREATE TRANSLATION MATRIX.
+      value = multiply(m, value);                   // (2) MULTIPLY TO CHANGE OBJECT value.
+      return this;
+   }
+   this.rotateX = function(theta) {
+      // YOU NEED TO IMPLEMENT ROTATION ABOUT X HERE
+   let m = [1,0,0,0, 0,Math.cos(theta),Math.sin(theta),0, 0,-Math.sin(theta),Math.cos(theta),0, 0,0,0,1];
+   value = multiply(m, value);
+      return this;
+   }
+
+   this.rotateY = function(theta) {
+     let m = [Math.cos(theta),0,-Math.sin(theta),0, 0,1,0,0, Math.sin(theta),0,Math.cos(theta),0, 0,0,0,1];
+     value = multiply(m, value);
+      return this;
+   }
+
+   this.rotateZ = function(theta) {
+     let m = [Math.cos(theta),Math.sin(theta),0,0, -Math.sin(theta),Math.cos(theta),0,0, 0,0,1,0, 0,0,0,1];
+     value = multiply(m, value);
+      return this;
+   }
+
+   this.scale = function(x, y, z) {
+     let m = [x,0,0,0, 0,y,0,0, 0,0,z,0, 0,0,0,1]; // (1) CREATE TRANSLATION MATRIX.
+     value = multiply(m, value);                   // (2) MULTIPLY TO CHANGE OBJECT value.
+      return value;
+   }
+   // GET THE CURRENT STATE OF THE Matrix OBJECT.
+
+   this.getValue = function() {
+      return value;
+   }
+
+   let value = [1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1]; // INTERNAL VALUE IS 16 NUMBERS.
+   let multiply = function(a, b) {
+      let c = [0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0];
+      for(let i = 0; i < 4; i ++ ){
+        for(let j = 0; j < 4; j ++){
+          for(let k = 0; k < 4; k ++) {
+            c[i + 4*j] += a[i + 4*k]*b[4*j + k];
+          }
+        }
+      }
+      return c; // RETURN THE RESULT OF a x b. c SHOULD BE AN ARRAY OF 16 NUMBERS.
+   }
+}
+
+// CREATE AN INSTANCE OF A MATRIX OBJECT.
+
+let matrix = new Matrix();
+
+// START EVERYTHING.
+gl_start(canvas1, vs, fs);
+
+</script>

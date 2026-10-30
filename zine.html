@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>dark book — a photo zine · Keru Wang</title>
+    <meta name="description" content="dark book, a photo zine by Keru Wang (work in progress).">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@200;300&family=Source+Sans+3:wght@400&display=swap" rel="stylesheet">
+    <script>
+        // zine.html?embed: just the book (used inside the gallery), turning pages on its own
+        if (/[?&]embed\b/.test(location.search)) document.documentElement.classList.add('embed');
+        if (/[?&]light\b/.test(location.search)) document.documentElement.classList.add('light');   // on a white page
+    </script>
+    <style>
+        :root {
+            --bg: #141416;
+            --text: #cfc8b4;        /* light yellowish grey, softer against the dark pages */
+            --muted: #8e887a;       /* the same warmth, dimmer, for secondary text */
+            --tilt: 24deg;          /* how far the book leans back, like a zine lying on a table */
+        }
+
+        * { box-sizing: border-box; }
+
+        html, body { height: 100%; }
+
+        body {
+            margin: 0;
+            background: radial-gradient(ellipse at 60% 45%, #26262a 0%, var(--bg) 70%);
+            color: var(--text);
+            font-family: "Source Sans 3", "Helvetica Neue", Arial, sans-serif;
+        }
+
+        /* ---------- layout: title column on the left, book on the right ---------- */
+        .layout {
+            min-height: 100vh;
+            display: grid;
+            grid-template-columns: minmax(200px, 280px) 1fr;
+        }
+
+        .side {
+            padding: 32px 0 32px 48px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .back {
+            font-size: 13px;
+            color: var(--muted);
+            text-decoration: none;
+            letter-spacing: 0.04em;
+        }
+        .back:hover { color: var(--text); }
+
+        .title { margin-top: auto; margin-bottom: auto; }
+
+        .title h1 {
+            font-family: "Oswald", "Helvetica Neue", Arial, sans-serif;
+            font-weight: 200;
+            font-size: clamp(3.4rem, 6vw, 5.2rem);
+            line-height: 0.95;
+            letter-spacing: 0.04em;
+            margin: 0;
+        }
+
+        .title p {
+            font-family: "Oswald", "Helvetica Neue", Arial, sans-serif;
+            font-weight: 300;
+            font-size: 13px;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            color: var(--muted);
+            margin: 18px 0 0;
+        }
+
+        .main {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 32px 32px 28px;
+        }
+
+        /* ---------- the book, tilted back in 3D ---------- */
+        .stage {
+            width: 100%;
+            max-width: 720px;            /* same as the book's own maximum width */
+            margin-top: clamp(60px, 16vh, 170px);   /* headroom: a turning page rises above the book */
+            perspective: 3200px;          /* camera further back: gentler, more natural foreshortening */
+            perspective-origin: 50% 30%;
+        }
+
+        .tilt {
+            transform: rotateX(var(--tilt));
+            transform-origin: 50% 65%;
+            transform-style: preserve-3d;
+        }
+
+        /* slides the book so a closed zine sits centered; moves in step with the cover turning */
+        .shift {
+            transform-style: preserve-3d;
+            transition: transform 1.1s cubic-bezier(0.45, 0, 0.2, 1);
+        }
+        .shift.no-anim { transition: none; }
+        #book { margin: 0 auto; }
+
+        /* keep the library's layers in the same 3D space, so a turning page lifts off the tilted table */
+        .tilt .stf__parent,
+        .tilt .stf__wrapper,
+        .tilt .stf__block { transform-style: preserve-3d; }
+        .tilt .stf__block { perspective: none; }
+
+        .page {
+            background: #000;
+            overflow: hidden;
+            /* contact shadow on the table under each page */
+            box-shadow: 0 22px 34px -14px rgba(0, 0, 0, 0.75);
+        }
+
+        /* faint paper edge so dark pages still read as a physical object */
+        .page::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.09);
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .page img {
+            display: block;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            user-select: none;
+            -webkit-user-drag: none;
+        }
+
+        /* gutter shading so open spreads read as bound paper */
+        .page.--left::after,
+        .page.--right::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 9%;
+            pointer-events: none;
+        }
+        .page.--left::after { right: 0; background: linear-gradient(to left, rgba(0,0,0,0.35), rgba(0,0,0,0)); }
+        .page.--right::after { left: 0; background: linear-gradient(to right, rgba(0,0,0,0.35), rgba(0,0,0,0)); }
+
+        /* turning-page shadows: darkest at the spine, fading out toward the page edge.
+           Both shadow elements start at the spine, so the gradient runs left → right in their own
+           coordinates. --a is the shadow strength the library animates (copied in by the script). */
+        .stf__hardShadow,
+        .stf__hardInnerShadow {
+            background: linear-gradient(to right,
+                rgba(0, 0, 0, var(--a, 0)) 0%,
+                rgba(0, 0, 0, calc(var(--a, 0) * 0.55)) 8%,
+                rgba(0, 0, 0, calc(var(--a, 0) * 0.25)) 22%,
+                rgba(0, 0, 0, calc(var(--a, 0) * 0.08)) 45%,
+                rgba(0, 0, 0, 0) 75%) !important;
+        }
+
+        /* page edges: each page carries the stack of edges beneath it on its outer side,
+           so a turning page takes its edge with it and stays in sync with the flip */
+        .edge {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            display: none;
+            z-index: 2;
+            pointer-events: none;
+            background: repeating-linear-gradient(to right, #3a3a3d 0 1px, #111113 1px 2px);
+        }
+        .page.--left .edge-l { display: block; left: 0; }
+        .page.--right .edge-r { display: block; right: 0; }
+        /* the sheet being turned is one page: it shows only its own edge, the stack stays on the flat pages */
+        .page.turning .edge { width: 1px !important; }
+
+        /* ---------- controls: ‹  07 — 08  ›  and one dot per spread ---------- */
+        .controls {
+            margin-top: 34px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .pager {
+            display: flex;
+            align-items: center;
+            gap: 28px;
+        }
+
+        .arrow {
+            width: 32px;
+            height: 32px;
+            padding: 0;
+            border: 0;
+            background: none;
+            color: var(--text);
+            cursor: pointer;
+            opacity: 0.7;
+            transition: opacity 0.2s;
+        }
+        .arrow svg { width: 100%; height: 100%; }
+        .arrow:hover:not(:disabled), .arrow:focus-visible { opacity: 1; }
+        .arrow:disabled { opacity: 0.15; cursor: default; }
+
+        .number {
+            min-width: 84px;
+            text-align: center;
+            font-family: "Oswald", "Helvetica Neue", Arial, sans-serif;
+            font-weight: 300;
+            font-size: 14px;
+            letter-spacing: 0.2em;
+            color: var(--text);
+            font-variant-numeric: tabular-nums;
+        }
+
+        .dots { display: flex; gap: 7px; flex-wrap: wrap; justify-content: center; max-width: 320px; }
+
+        .dot {
+            width: 5px;
+            height: 5px;
+            padding: 0;
+            border: 0;
+            border-radius: 50%;
+            background: var(--text);
+            opacity: 0.22;
+            cursor: pointer;
+            transition: opacity 0.25s, transform 0.25s;
+        }
+        .dot:hover { opacity: 0.6; }
+        .dot.current { opacity: 1; transform: scale(1.3); }
+
+        .hint {
+            margin: 18px 16px 0;
+            font-size: 12px;
+            letter-spacing: 0.03em;
+            text-align: center;
+            color: var(--text);
+            opacity: 0.35;
+        }
+
+        noscript { color: var(--muted); }
+
+        /* ---------- embed mode (inside the gallery) ---------- */
+        html.embed, html.embed body { background: transparent; min-height: 0; height: auto; }
+        html.embed .layout { display: block; min-height: 0; }
+        html.embed .side,
+        html.embed .hint,
+        html.embed .pager { display: none; }
+        html.embed .main { padding: 0 12px 12px; }
+        html.embed .stage { margin-top: 120px; }
+        html.embed .controls { margin-top: 22px; }
+        html.light { --text: #2b2926; --muted: #8b877e; }
+        html.light .page { box-shadow: 0 22px 30px -16px rgba(0, 0, 0, 0.45); }
+        /* on white, the shadow a turning page casts beside the book needs soft top and bottom edges */
+        html.light .stf__hardShadow,
+        html.light .stf__hardInnerShadow {
+            -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 18%, #000 82%, transparent 100%);
+                    mask-image: linear-gradient(to bottom, transparent 0%, #000 18%, #000 82%, transparent 100%);
+        }
+        .tilt { transition: opacity 0.6s ease; }
+        .tilt.resetting { opacity: 0; }
+
+        /* ---------- narrow screens: title above the book ---------- */
+        @media (max-width: 900px) {
+            .layout { grid-template-columns: 1fr; }
+            .side { padding: 24px 20px 0; }
+            .title { margin: 28px 0 8px; }
+            .title h1 { font-size: 3rem; }
+            .main { padding: 20px 16px 28px; justify-content: flex-start; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="layout">
+        <aside class="side">
+            <a class="back" href="index.html">← Keru Wang</a>
+            <div class="title">
+                <h1>dark<br>book</h1>
+                <p>A photo zine<br>work in progress</p>
+            </div>
+        </aside>
+
+        <main class="main">
+            <div class="stage">
+                <div class="tilt">
+                    <div class="shift" id="shift">
+                        <div id="book">
+                            <!-- pages are added by the script below: zine/p01.jpg … zine/p38.jpg -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="controls">
+                <div class="pager">
+                    <button class="arrow" id="prev" aria-label="Previous page">
+                        <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M19 8l-8 8 8 8"/></svg>
+                    </button>
+                    <span class="number" id="number" aria-live="polite"></span>
+                    <button class="arrow" id="next" aria-label="Next page">
+                        <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M13 8l8 8-8 8"/></svg>
+                    </button>
+                </div>
+                <div class="dots" id="dots" role="group" aria-label="Go to spread"></div>
+            </div>
+
+            <p class="hint">Drag a page corner or click a page to turn it. Arrow keys work too.</p>
+            <noscript>This flip book needs JavaScript.</noscript>
+        </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/page-flip@2.0.7/dist/js/page-flip.browser.js"></script>
+    <script>
+        (function () {
+            var PAGE_COUNT = 38;   // front cover, 18 spreads, back cover
+            var MAX_EDGE = 7;      // px of visible page edge for the full stack
+            var book = document.getElementById('book');
+
+            for (var i = 1; i <= PAGE_COUNT; i++) {
+                var page = document.createElement('div');
+                page.className = 'page';
+                page.setAttribute('data-density', 'hard');   // rigid, thick pages that swing on the spine
+                var img = document.createElement('img');
+                img.src = 'zine/p' + String(i).padStart(2, '0') + '.jpg?v=6';
+                img.alt = i === 1 ? 'Front cover' : i === PAGE_COUNT ? 'Back cover' : 'Page ' + (i - 1);
+                img.loading = i <= 4 ? 'eager' : 'lazy';
+                img.draggable = false;
+                page.appendChild(img);
+                // edge thickness = how many pages lie under this one on each side
+                var before = i - 1, after = PAGE_COUNT - i;
+                [['edge-l', before], ['edge-r', after]].forEach(function (e) {
+                    if (!e[1]) return;
+                    var edge = document.createElement('div');
+                    edge.className = 'edge ' + e[0];
+                    edge.style.width = Math.max(1, Math.round(MAX_EDGE * e[1] / (PAGE_COUNT - 1))) + 'px';
+                    page.appendChild(edge);
+                });
+                book.appendChild(page);
+            }
+
+            // in the gallery the book hangs small, so let it keep the two-page spread down to smaller pages
+            var minPage = document.documentElement.classList.contains('embed') ? 150 : 240;
+            var flip = new St.PageFlip(book, {
+                width: 360,
+                height: 360,
+                size: 'stretch',
+                minWidth: minPage,
+                maxWidth: 360,
+                minHeight: minPage,
+                maxHeight: 360,
+                showCover: true,
+                showPageCorners: false,   // no corner folding on hover: pages move only when clicked or dragged
+                usePortrait: true,
+                drawShadow: true,
+                maxShadowOpacity: 0.6,
+                flippingTime: 1100,
+                mobileScrollSupport: true
+            });
+            flip.loadFromHTML(book.querySelectorAll('.page'));
+
+            // The library writes each shadow's strength into an inline gradient on every frame.
+            // Copy that strength into --a so the CSS gradient above can use it.
+            book.querySelectorAll('.stf__hardShadow, .stf__hardInnerShadow').forEach(function (el) {
+                new MutationObserver(function () {
+                    var m = /rgba\(0,\s*0,\s*0,\s*([\d.]+)\)/.exec(el.style.background || el.style.backgroundImage || '');
+                    var a = m ? m[1] : '0';
+                    if (el.style.getPropertyValue('--a') !== a) el.style.setProperty('--a', a);
+                }).observe(el, { attributes: true, attributeFilter: ['style'] });
+            });
+
+            // One dot per view: cover, the 18 spreads, back cover.
+            var VIEWS = (PAGE_COUNT - 2) / 2 + 2;
+            var viewOf = function (i) { return Math.floor((i + 1) / 2); };
+            var pageOf = function (v) { return v === 0 ? 0 : 2 * v - 1; };
+            var pad = function (n) { return String(n).padStart(2, '0'); };
+
+            var dots = document.getElementById('dots');
+            for (var v = 0; v < VIEWS; v++) {
+                var dot = document.createElement('button');
+                dot.className = 'dot';
+                dot.setAttribute('aria-label', v === 0 ? 'Cover' : v === VIEWS - 1 ? 'Back cover' : 'Pages ' + (2 * v - 1) + '–' + (2 * v));
+                dot.addEventListener('click', (function (target) {
+                    return function () { intent = { to: pageOf(target) }; flip.flip(pageOf(target)); };
+                })(v));
+                dots.appendChild(dot);
+            }
+
+            var prev = document.getElementById('prev');
+            var next = document.getElementById('next');
+            var number = document.getElementById('number');
+
+            function update() {
+                var i = flip.getCurrentPageIndex();
+                var n = flip.getPageCount();
+                var portrait = flip.getOrientation() === 'portrait';
+                if (i === 0 || i === n - 1) number.textContent = '';
+                else if (portrait) number.textContent = pad(i);
+                else number.textContent = pad(i) + ' — ' + pad(i + 1);
+                var current = viewOf(i);
+                Array.prototype.forEach.call(dots.children, function (d, k) {
+                    d.classList.toggle('current', k === current);
+                    if (k === current) d.setAttribute('aria-current', 'page'); else d.removeAttribute('aria-current');
+                });
+                prev.disabled = i === 0;
+                next.disabled = i >= n - 1;
+            }
+
+            // ---- keep a closed book centered ----
+            // The library always lays out two page slots, so the front cover sits in the right slot
+            // and the back cover in the left one. Slide the book half a page so a closed zine is
+            // centered, starting the slide when the turn starts so both move together.
+            var shiftEl = document.getElementById('shift');
+            var intent = 1;   // direction of the turn being started: +1, -1, or {to: pageIndex}
+
+            function shiftFor(i) {
+                if (flip.getOrientation() !== 'landscape') return 0;
+                if (i === 0) return -25;                      // front cover alone on the right
+                if (i === flip.getPageCount() - 1) return 25;  // back cover alone on the left
+                return 0;
+            }
+            function setShift(i, animate) {
+                shiftEl.classList.toggle('no-anim', !animate);
+                shiftEl.style.transform = 'translateX(' + shiftFor(i) + '%)';
+                if (!animate) { void shiftEl.offsetWidth; shiftEl.classList.remove('no-anim'); }
+            }
+
+            // ---- single edge on the turning sheet ----
+            // While a page turns, mark the two faces of the moving sheet (rotated, not lying flat)
+            // so their edge shows one page's thickness instead of the whole stack.
+            var items = book.querySelectorAll('.stf__item');
+            var turningRaf = null;
+            function markTurning() {
+                Array.prototype.forEach.call(items, function (el) {
+                    var m = /rotateY\(([-\d.]+)deg\)/.exec(el.style.transform || '');
+                    var a = m ? Math.abs(parseFloat(m[1])) % 180 : 0;
+                    el.classList.toggle('turning', !el.classList.contains('--simple') && a > 0.5 && a < 179.5);
+                });
+                turningRaf = requestAnimationFrame(markTurning);
+            }
+            flip.on('changeState', function (e) {
+                if (e.data !== 'read' && !turningRaf) markTurning();
+                if (e.data === 'read' && turningRaf) {
+                    cancelAnimationFrame(turningRaf);
+                    turningRaf = null;
+                    Array.prototype.forEach.call(items, function (el) { el.classList.remove('turning'); });
+                }
+            });
+
+            flip.on('changeState', function (e) {
+                if (e.data === 'flipping') {
+                    var target;
+                    if (intent && typeof intent === 'object') target = intent.to;
+                    else target = pageOf(Math.min(Math.max(viewOf(flip.getCurrentPageIndex()) + intent, 0), VIEWS - 1));
+                    setShift(target, true);
+                } else if (e.data === 'read') {
+                    // a drag released early springs back: settle on wherever the book really is
+                    setTimeout(function () { setShift(flip.getCurrentPageIndex(), true); }, 30);
+                }
+            });
+
+            // which side of the spine a click or drag starts on tells us the direction
+            book.addEventListener('mousedown', noteSide, true);
+            book.addEventListener('touchstart', noteSide, { capture: true, passive: true });
+            function noteSide(e) {
+                var pt = e.touches ? e.touches[0] : e;
+                var r = book.querySelector('.stf__block').getBoundingClientRect();
+                intent = pt.clientX >= r.left + r.width / 2 ? 1 : -1;
+            }
+
+            prev.addEventListener('click', function () { intent = -1; flip.flipPrev(); });
+            next.addEventListener('click', function () { intent = 1; flip.flipNext(); });
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'ArrowLeft') { intent = -1; flip.flipPrev(); }
+                if (e.key === 'ArrowRight') { intent = 1; flip.flipNext(); }
+            });
+            flip.on('flip', function (e) {
+                update();
+                if (!EMBED) history.replaceState(null, '', e.data > 0 ? '#p' + (e.data + 1) : location.pathname);
+                scheduleAuto();
+            });
+            flip.on('changeOrientation', function () { update(); setShift(flip.getCurrentPageIndex(), false); });
+
+            // open at a specific page, e.g. zine.html#p10
+            var m = location.hash.match(/^#p(\d+)$/);
+            if (m) flip.turnToPage(Math.min(Math.max(parseInt(m[1], 10) - 1, 0), PAGE_COUNT - 1));
+            update();
+            setShift(flip.getCurrentPageIndex(), false);
+
+            // ---- autoplay in embed mode ----
+            // Turns a page every few seconds and starts over after the back cover. Any click, drag,
+            // or key hands control to the visitor; autoplay resumes 5 seconds after they let go.
+            // The gallery tells us when the book scrolls in or out of view.
+            var EMBED = document.documentElement.classList.contains('embed');
+            var AUTO_MS = 3200, RESUME_MS = 5000;
+            var autoOn = EMBED, inView = true, flipState = 'read', autoTimer = null, resumeTimer = null;
+            var tilt = document.querySelector('.tilt');
+
+            flip.on('changeState', function (e) { flipState = e.data; });
+
+            function scheduleAuto() {
+                clearTimeout(autoTimer);
+                if (autoOn && inView) autoTimer = setTimeout(autoStep, AUTO_MS);
+            }
+            function autoStep() {
+                if (flipState !== 'read') return scheduleAuto();
+                if (flip.getCurrentPageIndex() >= flip.getPageCount() - 1) {
+                    // back cover reached: fade out, close the book to the front cover, fade back in
+                    tilt.classList.add('resetting');
+                    setTimeout(function () {
+                        flip.turnToPage(0);
+                        update();
+                        setShift(0, false);
+                        tilt.classList.remove('resetting');
+                        scheduleAuto();
+                    }, 650);
+                    return;
+                }
+                intent = 1;
+                flip.flipNext();
+            }
+            function userTookOver() {
+                if (!EMBED) return;
+                autoOn = false;
+                clearTimeout(autoTimer);
+                clearTimeout(resumeTimer);
+                // after the quiet spell, turn a page right away rather than waiting another beat
+                resumeTimer = setTimeout(function () { autoOn = true; if (inView) autoStep(); else scheduleAuto(); }, RESUME_MS);
+            }
+            if (EMBED) {
+                book.addEventListener('mousedown', userTookOver, true);
+                book.addEventListener('touchstart', userTookOver, { capture: true, passive: true });
+                // count the quiet spell from when they let go, not from when they started a long drag
+                document.addEventListener('mouseup', function () { if (!autoOn) userTookOver(); }, true);
+                document.addEventListener('touchend', function () { if (!autoOn) userTookOver(); }, { capture: true, passive: true });
+                dots.addEventListener('click', userTookOver, true);
+                document.addEventListener('keydown', userTookOver, true);
+                window.addEventListener('message', function (e) {
+                    if (e.origin !== location.origin) return;
+                    if (e.data === 'zine:visible') { inView = true; scheduleAuto(); }
+                    if (e.data === 'zine:hidden') { inView = false; clearTimeout(autoTimer); }
+                });
+                scheduleAuto();
+
+                // tell the gallery how tall the book is, so its frame fits exactly
+                var reportHeight = function () {
+                    parent.postMessage({ zineHeight: Math.ceil(document.querySelector('.main').getBoundingClientRect().height) }, location.origin);
+                };
+                window.addEventListener('resize', reportHeight);
+                flip.on('changeOrientation', reportHeight);
+                reportHeight();
+            }
+        })();
+    </script>
+</body>
+</html>

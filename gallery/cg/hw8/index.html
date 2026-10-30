@@ -1,0 +1,425 @@
+<script src="../embed.js"></script>
+<script src="lib7.js?v=2"></script>
+
+<body bgcolor=black text=white link=white alink=white vlink=white>
+<center>
+<canvas id='canvas1' width=400 height=400></canvas>
+
+<br>
+
+
+</center>
+</body>
+
+<!!-------- VERTEX SHADER: YOU PROBABLY DON'T WANT TO CHANGE THIS RIGHT NOW -------->
+
+<script id='my_vertex_shader' type='x-shader/x-vertex'>
+   attribute vec3 aPos;
+   attribute vec3 aNor;
+   attribute vec2 aUV;
+   uniform   mat4 uPMat;
+   uniform   mat4 uMatF;
+   uniform   mat4 uMatI;
+   varying   vec3 vaPos;
+   varying   vec3 vPos;
+   varying   vec3 vNor;
+   varying   vec2 vUV;
+   void main() {
+      vec4 pos = uPMat * uMatF * vec4(aPos, 1.);
+      vec4 nor = vec4(aNor, 0.) * uMatI;
+      gl_Position = pos * vec4(1.,1.,1./10.,1.);
+      vaPos = aPos;
+      vPos = pos.xyz;
+      vNor = nor.xyz;
+      vUV  = aUV;
+   }
+</script>
+
+<!!-------- FRAGMENT SHADER: THIS IS WHERE YOU WILL DO YOUR WORK -------->
+
+<script id='my_fragment_shader' type='x-shader/x-fragment'>
+
+ const int nl = 3;            // NUMBER OF LIGHTS
+ uniform vec3  uLDir[nl];     // LIGHT DIRECTIONS
+ uniform vec3  uLCol[nl];     // LIGHT COLORS
+ uniform mat4  uM;            // MATERIAL PROPERTIES
+ uniform float uTime;         // TIME (CURRENTLY UNUSED)
+ uniform float uC;
+ varying vec3  vPos;
+ varying vec3  vaPos;
+ varying vec3  vNor;
+ varying vec2  vUV;
+
+ void main() {
+    vec3 P = vPos;            // SURFACE POINT
+    vec3 N = normalize(vNor); // SURFACE NORMAL
+    vec3 E = vec3(0.,0.,1.);  // APPROX DIRECTION TO EYE
+
+    // UNPACK MATERIAL PROPERTIES MATRIX
+
+    mat4 material = uM;
+    float ta      = material[3].r;
+    if (ta == 2.){
+      gl_FragColor = vec4(sqrt(vec3(.5,.5,.5)), 1.0);
+      return;
+      //ambient += .1*uC*vec3(0.,0.,.5);
+    }
+    if (ta == 1.){
+      gl_FragColor = vec4(sqrt(vec3(.5,.5,.5)*uC), 1.0);
+      return;
+      //ambient += .1*uC*vec3(0.,0.,.5);
+    }
+    vec3 ambient  = material[0].rgb;
+    vec3 diffuse  = material[1].rgb;
+    vec3 specular = material[2].rgb;
+    float p       = material[2].a;
+    float tf      = material[3].g;
+
+    // DO PHONG SHADING
+    vec3 color = ambient;
+    for (int i = 0 ; i < nl ; i++) {
+       vec3 R = 2. * dot(uLDir[i], N) * N - uLDir[i];
+       float d = max(0., dot(uLDir[i], N));
+       float s = pow(max(0., dot(E, R)), p);
+       if(s >.5) color += .2*specular;
+       if(uC > 0. && s > .5 -.4999999* uC && i == 1) color += .3*specular;
+       color += uLCol[i] * (diffuse * d);
+    }
+    color += specular * .02 * (.1 - noise(1.5 * N)) * N.z;
+
+
+    gl_FragColor = vec4(sqrt(color), 1.0);
+ }</script>
+
+<!!-------- A PROPERLY DESCRIPTIVE TITLE -------->
+
+<script id='my_title' type='text/html'>
+YOU ARE THE WIND
+</script>
+
+<!!-------- A LONGER TEXT DESCRIPTION -------->
+
+<script id='my_instructions' type='text/html'><font color=#b0b0b0>
+<p>
+Try to move your mouse in the rain. You are the wind.
+<p>
+The more you blow, the stormier the rain will be.
+<p>
+</script>
+
+<script>
+
+// CREATE THE HTML DOCUMENT
+
+let vs = my_vertex_shader.innerHTML,
+    fs = my_fragment_shader.innerHTML;
+    fs = fs.substring(1, fs.length);
+
+document.body.innerHTML = [''
+   ,'<center><font size=6 color=#b0b0b0>' + my_title.innerHTML + '</center>'
+   ,'<TABLE cellspacing=0 cellpadding=0><TR>'
+   ,'<td width=50></td><td><font color=red size=5><div id=errorMessage>&nbsp;</div></font></td>'
+   ,'</TR><TR>'
+   ,'<table cellspacing=10>'
+   ,'<tr>'
+   ,'<td valign=top><font size=2 color=red><div id=errorMarker>&nbsp;</div></font></td>'
+   ,'<td valign=top>'
+   ,'<textArea id=textArea spellcheck=false '
+   ,'style="font:16px courier;outline-width:0;border-style:none;resize:none;overflow:scroll;"'
+   ,'></textArea>'
+   ,'</td><td valign=top>' + document.body.innerHTML + '</td>'
+   ,'<td valign=top><font size=5>' + my_instructions.innerHTML + '</td>'
+   ,'</tr></table>'
+   ,'</TR></TABLE>'
+   ].join('');
+
+// SET UP THE EDITABLE TEXT AREA ON THE LEFT SIDE.
+
+let text = fs.split('\n'), cols = 0;
+for (let i = 0 ; i < text.length ; i++)
+   cols = Math.max(cols, text[i].length);
+
+textArea.rows = text.length;
+textArea.cols = 50;
+textArea.value = fs;
+textArea.style.backgroundColor = '#202020';
+textArea.style.color = 'white';
+
+// REPARSE THE SHADER PROGRAM AFTER EVERY KEYSTROKE.
+
+textArea.onkeyup = function() { canvas1.setShaders(vs, this.value); }
+
+// USEFUL ANIMATION VARIABLES.
+
+let startTime = Date.now(), prevTime = startTime, rate = 1, theta = 0;
+
+
+let gold          = phong([.1,.03,0], [.12,.05,0], [1,.5,0], 10);
+let red_plastic   = phong([.1,.1,.1], [.0,0,0], [.2,.2,.2], 40, 1);
+let green_plastic = phong([0,.1,0], [0,.5,0], [1,1,1], 20);
+let blue_plastic  = phong([0,.05,.1], [0,.25,.5], [1,1,1], 20);
+let white_plastic = phong([.1,.1,.1], [.5,.5,.5], [1,1,1], 20);
+let white_2D      = phong([.1,.1,.1], [.5,.5,.5], [1,1,1], 20,2);
+let white_gold    = phong([.01,.01,.008], [0,0,0], [2,2,1.6], 40);
+let cloud_under   = phong([.01,.01,.008], [0,0,0], [.9,.9,.72], 40);   // the cloud's underside: dimmer highlights, so it stays dark
+let steel         = phong([.02,.02,.02], [.02,.02,.02], [1,1,1], 10);
+let brass         = phong([.02,.012,0], [.02,.012,0], [1,.6,0], 10);
+
+// DEFINE ANIMATION CALLBACK, WHICH WILL GET CALLED AT EVERY FRAME.
+
+let time = 0;
+let rainCount = 0;
+let interval = 3;
+let timeCount = 0;
+
+function animate() {
+
+   time = (Date.now() - startTime) / 1000;
+   prevTime = time;
+
+   // SET TIME IN THE GPU.
+
+   setUniform('1f', 'uTime', time);
+   setUniform('1f', 'uC', flash);
+
+   // SET LIGHTS IN THE GPU.
+
+   setUniform('3fv', 'uLDir', [ .57,.57,.57, -.57,-.57,-.57, -.8,-.6,0 ]);
+   setUniform('3fv', 'uLCol', [ 1,1,1,        .25,.2,.15,     .2,.18,.16 ]);
+
+   // SET PERPECTIVE MATRIX.
+
+   setUniform('Matrix4fv', 'uPMat', false, perspectiveMatrix);
+
+   // ANIMATE THE TEST OBJECT.
+
+
+   // DRAW EVERYTHING.
+
+   root.identity()
+
+   for(let n = 0; n < rainNum; n ++){
+     // drops near the cursor's height get blown along with the mouse's movement
+     if(rainY[n] >= y0 - range && rainY[n] <= y0 + range && Math.abs(windX) > .002){
+       rainSX[n] = Math.max(-3, Math.min(3, rainSX[n] + 60 * windX));
+     }
+       root.child(n).translate(rainSX[n],0,rainS[n]);
+       rainX[n] += rainSX[n];
+       rainY[n] -= rainS[n]*rainR[n];
+       if(rainY[n] < -1) {
+         let spawnY = RAIN_TOP - .08 * Math.random();   // just under the cloud
+         root.child(n).translate(rainI[n] - rainX[n], 0, -(spawnY - rainY[n]) / rainR[n]);
+         rainX[n] = rainI[n];
+         rainSX[n] = 0;
+         rainY[n] = spawnY;
+       }
+        if(rainY[n] < -.7 && (rainX[n] < -.6 || rainX[n] > .6)){
+          rainCount ++;
+        }
+        timeCount ++;
+        if(timeCount == interval) {
+          timeCount = 0;
+          rainCount = 0;
+        }
+   }
+   windX *= .85;   // the wind dies down once the mouse stops
+
+   // the more rain you blow around, the stormier it gets; a strong storm flickers the lightning
+   let blown = 0;
+   for (let n = 0; n < rainNum; n++) if (Math.abs(rainSX[n]) > 1) blown++;
+   storm = .92 * storm + .08 * blown;
+   flash = storm > 2.5 && Math.random() < .35 ? 2 : 0;
+   // each puff breathes gently, out of step with its neighbours
+   for (let i = 0; i < puffs.length; i++) {
+     let p = puffs[i], s = 1 + .11 * Math.sin(2 * (time + i + 1));
+     cloud.child(i).identity();
+     cloud.child(i).translate(p[0], p[1], p[2]);
+     cloud.child(i).scale(s * p[3], s * p[4], s * p[5]);
+   }
+   root.draw();
+
+}
+
+
+let perspectiveMatrix = createPerspectiveMatrix(3);
+let matrix = new Matrix();
+let root = new Object();
+let rainNum = 20;
+let RAIN_TOP = -.02;   // highest point a raindrop starts from: just under the cloud's base
+let rainI = [];
+let rainX = [];
+let rainY = [];
+let rainZ = [];
+let rainR = [];
+let rainS = [];
+let rainSX = [];
+let range = .15;
+
+let rainDrop = createTriangleMesh(uvToLathe, 5, 5,
+   [
+   [0,.3, .45,.55,.65, .42,0], // r
+   [-1.9, -.79, .79,.8]     // z
+   ]
+);
+
+for (let n = 0 ; n < rainNum ; n++) {
+   rainI[n] = -.3 + .6*Math.random();
+   rainX[n] = rainI[n];
+   rainY[n] = RAIN_TOP - .62 * Math.random();
+   rainZ[n] = .5 -  Math.random();
+   rainR[n] = .01 + .01*Math.random();
+   rainS[n] = 1. + 2*Math.random();
+   rainSX[n] = 0;
+}
+
+for (let n = 0 ; n < rainNum ; n++) {
+   root.add(rainDrop, white_2D)
+       .translate(rainX[n], rainY[n], rainZ[n]-.3)
+       .scale(rainR[n],1.2*rainR[n],rainR[n])
+       .rotateX(Math.PI/2)
+}
+
+// the cloud is built from puffs: center x, y, z, then radii x, y, z
+let puffs = [
+   [-.375, -.276, .32,   .15, .12, .2 ],   // the top
+   [-.169, -.168, .4,    .26, .24, .2 ],
+   [ .152, -.234, .4,    .19, .18, .2 ],
+   [ .35,  -.3,   .4,    .14, .12, .2 ],
+   [ .014, -.3,   .55,   .14, .1,  .1 ],
+   [-.47,  -.32,  .2,    .15, .115, .15],  // the base, a row of smaller, darker puffs
+   [-.24,  -.335, .22,   .17, .125, .17],
+   [ .0,   -.34,  .22,   .18, .13,  .18],
+   [ .24,  -.335, .22,   .17, .125, .17],
+   [ .47,  -.32,  .2,    .15, .115, .15],
+];
+
+let cloud = root.add();
+    cloud.translate(0,.5,0);
+for (let i = 0; i < puffs.length; i++)
+    cloud.add(sphere, i < 5 ? white_gold : cloud_under);
+// CREATE A BRASS TACK AS A SURFACE OF REVOLUTION.
+
+let thunder = cloud.add();
+    thunder.scale(.1);
+let thunder1 = cloud.add();
+    thunder1.scale(.1);
+let thunder2 = cloud.add();
+    thunder2.scale(.1);
+let thunder3 = cloud.add();
+    thunder3.scale(.1);
+
+  let tail = [
+    [-3, -4, 0],
+    [-2, -2.9, 0],
+    [.5, -.25, 0],
+    [ 0, .1, 0],
+    [ 1.5, 2.25, 0],
+    [1.15,2.5,0],
+    [2,4,0],
+
+  ];
+
+  let tail1 = [
+    [-5, 1, 0],
+    [-2, 2.5, 0],
+    [-1.5, 2.56, 0],
+    [-.08, 3.25, 0],
+    [1,3.8,0],
+
+  ];
+  let tail2 = [
+    [-3, 0, 0],
+    [-2, 1.5, 0],
+    [-0.5, 2.56, 0],
+    [-0.4, 3.25, 0],
+    [2,5,0],
+
+  ];
+
+  for (let n = 0 ; n <= 200 ; n++) {   // SHOW PATH AS SMALL SPHERES.
+         let p = evalCRSpline(tail, n/200);
+         thunder.add(sphereSimple, red_plastic)
+             .translate(p)
+             .scale(.1*(100-Math.abs(n-100))/100);
+                 }
+  thunder.translate(0-1.5,-7.,1.);
+  for (let n = 0 ; n <= 200 ; n++) {   // SHOW PATH AS SMALL SPHERES.
+         let p = evalCRSpline(tail1, n/200);
+         thunder1.add(sphereSimple, red_plastic)
+             .translate(p)
+             .scale(.06*(120-Math.abs(n-100))/100);
+                 }
+  thunder1.translate(6.7,-3.,1.);
+  for (let n = 0 ; n <= 200 ; n++) {   // SHOW PATH AS SMALL SPHERES.
+         let p = evalCRSpline(tail2, n/200);
+         thunder2.add(sphereSimple, red_plastic)
+             .translate(p)
+             .scale(.1*Math.max(2, n-20)/100);
+                 }
+  thunder2.translate(0.0-1.5,-9.,-1.);
+  for (let n = 0 ; n <= 200 ; n++) {   // SHOW PATH AS SMALL SPHERES.
+         let p = evalCRSpline(tail1, n/200);
+         thunder3.add(sphereSimple, red_plastic)
+             .translate(p)
+             .scale(.05*(150-Math.abs(n-100))/100);
+                 }
+  thunder3.translate(-1.0-1.5,-12.,-1.);
+// SAMPLE A SPLINE PATH, PUT SMALL BLUE PLASTIC SPHERES ALONG THE PATH.
+
+let path = sampleBezierPath( [-1,-1/3, 1/3, 1],  // X keys
+                             [ 1,-1,   1  ,-1],  // Y keys
+                             [ 1,-1,  -1  , 1],  // Z keys
+			     60);                // number of samples
+
+
+
+// SAMPLE A CATMULL ROM SPLINE PATH.
+
+
+
+// SAMPLE A CIRCULAR PATH, INCLUDING A CROSS VECTOR AT EACH SAMPLE.
+
+let createCircularPath = n => {
+   let path = [];
+   for (let i = 0 ; i <= n ; i++) {
+      let theta = 2 * Math.PI * i / n;
+      let c = Math.cos(theta);
+      let s = Math.sin(theta);
+      path.push([c,s,0, c,s,0]); // POSITION AND CROSS VECTOR
+   }
+   return path;
+}
+
+
+// CREATE A GOLD RING BY EXTRUDING A PROFILE ALONG A CIRCULAR PATH.
+
+let createRingShape = function() {
+   let a = .085, b = .04, c = .16,
+       A  = .46, B = .6, C = .2;
+
+   ringProfile = sampleBezierPath(
+      [a,b,  0,0,0,  0,0,0,  b,a,c, c,a],
+      [A,B,  B,A,C, -C,-A,-B,  -B,-A,-C, C,A],
+      [0,0,0,0],
+      20);
+   return extrude(ringProfile, createCircularPath(50));
+}
+
+//test.add(createRingShape(), white_gold).scale(1,1,.28).scale(1.3);
+
+
+// COMPUTE VIEW ROTATION ANGLES WHEN USER DRAGS MOUSE.
+
+let rotX=0, rotY=0, x0 = 0, y0 = 0, windX = 0, storm = 0, flash = 0;
+
+canvas1.onPress = (x, y) => {  }
+canvas1.onMove  = (x, y) => {
+                              windX = .6 * windX + .4 * (x - x0);   // smoothed horizontal mouse speed
+                              x0 = x; y0 = y;
+                             }
+
+// START EVERYTHING.
+
+gl_start(canvas1, vs, fs);
+
+</script>

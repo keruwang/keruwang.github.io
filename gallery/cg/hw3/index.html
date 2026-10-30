@@ -1,0 +1,492 @@
+<script src="../embed.js?v=2"></script>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+   <title>Eye of Cthulhu</title>
+   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+   <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.9.0/p5.min.js"></script>
+   <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.9.0/addons/p5.dom.min.js"></script>
+
+
+   <script src=lib2.js></script>
+ </head>
+
+<body bgcolor=black text=white link=white alink=white vlink=white>
+<center>
+
+<canvas id='canvas1' width=400 height=400></canvas>
+
+<br>
+<p>moving speed</p>
+<input type=range min=1 max=100 value=50 class=slider id=slider1><br>
+<p>eye color</p>
+<input type="color" id="colorbar" value="#135DF1">
+</center>
+
+
+</body>
+
+<!!-------- VERTEX SHADER: YOU PROBABLY DON'T WANT TO CHANGE THIS RIGHT NOW -------->
+
+<script id='my_vertex_shader' type='x-shader/x-vertex'>
+   attribute vec3 aPos;
+   varying   vec3 vPos;
+   void main() {
+      gl_Position = vec4(aPos, 1.);
+      vPos = aPos;
+   }
+</script>
+
+<!!-------- FRAGMENT SHADER: THIS IS WHERE YOU WILL DO YOUR WORK -------->
+
+<script id='my_fragment_shader' type='x-shader/x-fragment'>
+
+ uniform float uTime;   // TIME, IN SECONDS
+ const int nl = 2;
+ const int ns = 2;
+ vec3 D = vec3(.67,.70,.957);
+ uniform vec4 uSph[ns];
+ uniform vec3 uLCol[nl];
+ uniform mat4 uM[ns];
+ uniform vec2 myNose;
+ uniform vec3 uGlowWormC[2];
+ uniform vec3 uEyeColor;
+ varying vec3 vPos;     // -1 < vPos.x < +1
+                        // -1 < vPos.y < +1
+                        //      vPos.z == 0
+ float fl = 3.;
+ vec3 Ld[nl];
+ vec3 backgroundColor = vec3(.08,.01,.02);
+ vec4 Sph[ns];
+ const int cloudNum = 7;
+ uniform vec2 cloudPos[cloudNum];
+ mat4 cloud[cloudNum];
+ vec3 LS[cloudNum];//for drawing stars' reflection
+ vec3 LC[cloudNum];//for drawing stars
+ float reflectionDegree0 = 1.;
+ float reflectionDegree1 = 19.;
+ float highLightDegree = 20.;
+ mat4 M[ns];
+ float c = 0.;
+ vec3 base   = vec3(.4, .05, .0);
+ vec3 white = vec3(1.,.5,.5);
+ vec3 red  = vec3(1.,.2,.2);
+
+ // --- helpers to avoid NaNs ---
+ vec3 safeNormalize(vec3 v){
+   float m = length(v);
+   return m > 0.0 ? v / m : vec3(0.0);
+ }
+ float safePow(float b, float e){
+   return pow(max(0.0, b), e);
+ }
+
+ float raySphere(vec3 V, vec3 W, vec4 Sph) {
+    float t = -1.;
+    vec3 Vp = V - Sph.xyz;
+    float B = dot(W, Vp);
+    float C = dot(Vp, Vp) - Sph.w * Sph.w;
+    float discr = B * B - C;
+    if (discr >= 0.)
+       t = -B - sqrt(discr); // COMPUTE t
+    return t;
+ }
+
+ vec3 doShading(vec3 P, vec3 N, vec3 E, mat4 M, vec3 W) {
+    mat4 material = M;
+    vec3 ambient = material[0].rgb;
+    vec3 diffuse = material[1].rgb;
+    vec3 color = .05*ambient;
+    for (int il = 0 ; il < nl ; il++){
+      color += .3*uLCol[il] * diffuse * max(0., dot(N,Ld[il]));
+      if(max(0., dot(N,Ld[il]))>.92 && (dot(N,-W)<=.5&&dot(N,-W)>=.35)) color += .1;
+    }
+    return color;
+ }
+
+ vec3 complexShading(vec3 R, vec3 N, vec3 W, mat4 M, vec3 SphCenter, mat4 light,
+                     vec3 highLightC, vec3 LS, vec3 LR, float reflectionDegree0, float reflectionDegree1) {
+    vec3 diffuse = M[1].rgb;
+    vec3 color = .01*M[0].rgb;//ambient
+
+    // guard negative base inside pow()
+    float specBase = max(0.0, dot(R, LR) - 0.05);
+    color += max(.0, 1.8 - distance(SphCenter, light[0].xyz))
+          * (.5 + 1.5 * light[0].w) * 2.0
+          * ( reflectionDegree0 * vec3(1.,.9,.9) * diffuse * max(0., dot(N,LS))
+            + 1.5 * vec3(.5,.5,1.) * safePow(specBase, reflectionDegree1 * (.4 + 1.5 * light[0].w)) );
+
+    if (safePow(max(0., dot(R, LR)), 30.) > .9) color += .3 * light[1].rgb;
+    return color;
+ }
+
+ vec3 glowWorm(vec3 V,vec3 W,vec4 Sph,vec3 glowWormC,vec3 color,vec3 L,float t) {
+   vec3 P = V + t * W;
+   vec3 N = safeNormalize(P - Sph.xyz);
+   vec3 R = 2.*dot(N,L)*N - L;
+   float base = max(0.0, dot(-W,R));
+   return max(2.*glowWormC * safePow(base, 5.0), 0.0);
+ }
+
+ void main() {
+   Sph[0] = uSph[0];
+   Sph[1] = uSph[1];
+   Sph[0].x -= .02*noise(4.*sin(2.*uTime)*vPos);
+   Sph[0].y -= .02*noise(5.*cos(2.*uTime)*vPos);
+   Sph[1].x += .02*noise(4.*sin(2.*uTime+1.)*vPos);
+   Sph[1].y += .02*noise(5.*cos(2.*uTime-3.)*vPos);
+
+   Ld[0] = safeNormalize(vec3(1.,1.,1.));
+   Ld[1] = safeNormalize(vec3(-1.,-1.,-1.));
+
+   vec3 color = backgroundColor;
+   vec3 glowWormC = vec3(1.,.6,.6);
+   vec3 Lc = .2*glowWormC;
+
+   // RAY
+   vec3 V = vec3(0.,0.,0.);
+   vec3 W = safeNormalize(vec3(vPos.xy, -fl));
+
+   float t0 = 10000.; // REALLY HONKING BIG t
+
+   for(int i = 0; i < cloudNum; i ++){
+     // update desired x,y into the first column’s x,y slots
+     cloud[i][0].x = cloudPos[i].x + .02*noise(4.*sin(2.*uTime)*vPos);
+     cloud[i][0].y = cloudPos[i].y + .02*noise(4.*cos(2.*uTime)*vPos);
+
+     // *** FIXED: exactly 16 components (4 vec4 columns) ***
+     // col0: (x, y, z, r)
+     // col1: (glowWormC, 0)
+     // col2: (0,0,0,0)
+     // col3: (0,0,0,0)
+     cloud[i] = mat4(
+       cloud[i][0].x, cloud[i][0].y, -3.0,          0.07 + 0.01*float(i),
+       glowWormC.x,   glowWormC.y,   glowWormC.z,   0.0,
+       0.0,           0.0,           0.0,           0.0,
+       0.0,           0.0,           0.0,           0.0
+     );
+
+     LC[i] = safeNormalize(vec3(cloud[i][0].xy, -cloud[i][0].z));
+     cloud[i][2].x = raySphere(V, W, cloud[i][0]);
+   }
+
+   for (int is = 0 ; is < ns ; is++) {
+     M[is] = uM[is];
+     float t = raySphere(V, W, Sph[is]);
+     vec3 eyePos = safeNormalize(vec3(myNose,-3.) - Sph[is].xyz);
+
+     if (t >= 0. && t < t0) {
+       t0 = t;
+       vec3 P = V + t * W;
+       vec3 N = safeNormalize(P - Sph[is].xyz);
+       float x = dot(N, eyePos);
+       vec3 LN = safeNormalize(vec3(myNose,-3.) - Sph[is].xyz);
+       vec3 RN = 2.*dot(N,LN)*N - LN;
+
+       for(int i = 0; i < cloudNum; i ++){
+         float d = .95*clamp(1.6 - .8*distance(Sph[is].xy, myNose) * (.01*noise(10.*(N-eyePos).xxy)+.99), .99, 1.02);
+         if (x > d){
+           M[is][0].rgb = vec3(-.1,-.1,-.1);
+           reflectionDegree0 = 0.;
+           reflectionDegree1 = 40.;
+         } else if (x > .77*(.01*noise(5.*(N-eyePos).xyy)+.99)){
+           M[is][0].rgb = mix(uEyeColor, vec3(.0,.0,1.), noise(30.*(N-eyePos).xxy));
+           if (x > d*(.06*(noise(7.*(N-eyePos).xxy)+.5)+.96)) M[is][0].rgb += .5*mix(uEyeColor.bgr, M[is][0].rgb, noise((N-eyePos).yxy));
+           else if (x > (d-.05)*(.08*(noise(6.*(N-eyePos).xyy)+.5)+.94)) M[is][0].rgb += mix(vec3(.2,.5,.3), M[is][0].rgb, noise((N-eyePos).yxy));
+           M[is][0].rgb = mix(.1*uEyeColor, M[is][0].rgb, 10.*(x-.8)+.2*(.5*noise(N-eyePos))+.3);
+         }
+
+         LS[i] = safeNormalize(cloud[i][0].xyz - Sph[is].xyz);
+         vec3 R = 2.*dot(N,LS[i])*N - LS[i];
+
+         // safe LR (avoid normalize(0))
+         float lrAtten = clamp(dot(safeNormalize(LS[i]), -safeNormalize(W)), 0.0, 1.0);
+         vec3  lrVec   = LS[i] * lrAtten;
+         vec3  LR      = (lrAtten > 0.0) ? safeNormalize(lrVec) : vec3(0.0);
+
+         color = .05*M[is][0].rgb;
+         color += complexShading(R, N, W, M[is], Sph[is].xyz, cloud[i], vec3(.2,.1,1.), LS[i], LR, reflectionDegree0, reflectionDegree1);
+       }
+
+       float rnBase = max(0.0, .02 + dot(RN, -W));
+       if (safePow(rnBase, 30.) > .98) color += .45*safePow(rnBase, 30.)*1.2*(1.5 - distance(Sph[is].xy, myNose));
+
+       for (int q = 0; q < nl; q++){
+         vec3 RLS = safeNormalize(Ld[q] - Sph[is].xyz);
+         vec3 RL  = 2.*dot(N,RLS)*N - RLS;
+
+         float att  = clamp(dot(safeNormalize(RLS), -safeNormalize(W)), 0.0, 1.0);
+         vec3  rlv  = RLS * att;
+         vec3  LR2  = (att > 0.0) ? safeNormalize(rlv) : vec3(0.0);
+
+         if (safePow(max(0., dot(RL, LR2)), 20.) > .93) color += .3;
+       }
+
+       color += doShading(P, N, -W, M[is], W);
+
+       vec3 Vr = P;
+       vec3 Wr = 2. * dot(-W, N) * N + W;
+
+       vec3 rColor = backgroundColor;
+       float tr0 = 10000.;
+       for (int js = 0 ; js < ns ; js++) {
+         float tr = raySphere(Vr, Wr, Sph[js]);
+         if (tr >= 0. && tr < tr0) {
+           tr0 = tr;
+           vec3 Pr = Vr + tr * Wr;
+           vec3 Nr = safeNormalize(Pr - Sph[js].xyz);
+           rColor = doShading(Pr, Nr, -Wr, M[js], W);
+         }
+       }
+       color += M[is][0].rgb * rColor;
+     }
+   }
+
+   for (int i = 0; i < cloudNum; i++){
+     if (cloud[i][2].x >= 0. && cloud[i][2].x < t0){
+       color = max(color, .5*color + .5*distance(.0, cloud[i][0].z)
+                    * glowWorm(V, W, cloud[i][0], cloud[i][1].rgb, color, LC[i], cloud[i][2].x));
+     }
+   }
+
+   gl_FragColor = vec4(color, 1.0);
+ }
+</script>
+
+
+
+<!!-------- CREATE A PROPERLY DESCRIPTIVE TITLE BELOW -------->
+
+<script id='my_title' type='text/html'>
+Eye of Cthulhu
+</script>
+
+<!!-------- HERE IS WHERE YOU CAN PROVIDE A LONGER TEXT DESCRIPTION -------->
+
+<script id='my_instructions' type='text/html'><font color=#b0b0b0>
+Two eyeballs float around a cluster of stars. Move your mouse over the scene to drag the stars,
+and the eyes will follow. Leave the scene and they drift on their own.<br><br>
+(Originally this followed your nose through the webcam, using the poseNet model.)
+</script>
+
+<!!-------- YOU PROBABLY DON'T WANT TO CHANGE ANYTHING BELOW FOR NOW -------->
+
+<script>
+
+// CREATE THE HTML DOCUMENT
+
+let vs = my_vertex_shader.innerHTML,
+    fs = my_fragment_shader.innerHTML;
+    fs = fs.substring(1, fs.length);
+
+document.body.innerHTML = [''
+   ,'<center><font size=6 color=#b0b0b0>' + my_title.innerHTML + '</center>'
+   ,'<TABLE cellspacing=0 cellpadding=0><TR>'
+   ,'<td width=50></td><td><font color=red size=5><div id=errorMessage>&nbsp;</div></font></td>'
+   ,'</TR><TR>'
+   ,'<table cellspacing=10>'
+   ,'<tr>'
+   ,'<td valign=top><font size=2 color=red><div id=errorMarker>&nbsp;</div></font></td>'
+   ,'<td valign=top>'
+   ,'<textArea id=textArea spellcheck=false '
+   ,'style="font:16px courier;outline-width:0;border-style:none;resize:none;overflow:scroll;"'
+   ,'></textArea>'
+   ,'</td><td valign=top>' + document.body.innerHTML + '</td>'
+   ,'<td valign=top><font size=5>' + my_instructions.innerHTML + '</td>'
+   ,'</tr></table>'
+   ,'</TR></TABLE>'
+   ].join('');
+
+// SET UP THE EDITABLE TEXT AREA ON THE LEFT SIDE.
+
+let text = fs.split('\n'), cols = 0;
+for (let i = 0 ; i < text.length ; i++)
+   cols = Math.max(cols, text[i].length);
+
+textArea.rows = text.length;
+textArea.cols = 50;
+textArea.value = fs;
+textArea.style.backgroundColor = '#202020';
+textArea.style.color = 'white';
+
+// REPARSE THE SHADER PROGRAM AFTER EVERY KEYSTROKE.
+
+textArea.onkeyup = function() { canvas1.setShaders(vs, this.value); }
+
+// SET THE CURRENT TIME IN SECONDS BEFORE RENDERING EACH FRAME.
+
+let startTime = Date.now();
+
+let theta = 0, prevTime = startTime, rate = 1;
+let R = .2;
+let G = .5;
+let B = .8;
+
+// THIS METHOD GETS CALLED WHENEVER USER ADJUSTS THE SLIDER.
+
+slider1.oninput = function() {
+   rate = this.value / 50;
+}
+function hexToR(h) {
+  return parseInt((cutHex(h)).substring(0,2),16);
+}
+function hexToG(h) {
+  return parseInt((cutHex(h)).substring(2,4),16);
+}
+function hexToB(h) {
+  return parseInt((cutHex(h)).substring(4,6),16);
+}
+function cutHex(h) {
+  return (h.charAt(0)=="#") ? h.substring(1,7):h;
+}
+
+colorbar.oninput = function() {
+  R = sqrt(hexToR(this.value)/255);
+  G = sqrt(hexToG(this.value)/255);
+  B = sqrt(hexToB(this.value)/255);
+}
+function animate(gl) {
+   let time = (Date.now() - startTime) / 1000;
+
+   // VARY ROTATION RATE, DEPENDING ON SLIDER VALUE.
+
+   theta += .5 * rate * (time - prevTime);
+   prevTime = time;
+
+   // SET A UNIFORM OF TYPE float.
+
+   setUniform('1f', 'uTime', time);
+   let n = currentNose();
+   setUniform('2fv','myNose',[- ((n.x-250)/250),-((n.y-250)/250)]);
+   // SET ARRAYS OF UNIFORMS OF TYPE vec3 AND vec4.
+   draw();
+   setUniform('4fv', 'uSph', [ .7 * Math.cos(theta)+ eyeCenterX,.7 * Math.sin(theta)+ eyeCenterY,-4,.3,
+                               .7 * Math.sin(theta)+ eyeCenterX,.7 *Math.sin(theta - Math.PI)+ eyeCenterY,-4,.3]);
+   // setUniform('4fv', 'uSph', [ .7 * Math.cos(theta),.7 * Math.sin(theta),-4,.3,
+   //                             .7 * Math.cos(theta- Math.PI),.7 *Math.sin(theta - Math.PI),-4,.3]);
+   setUniform('3fv', 'uLCol', [ .3,.3,.6,  1,.0,.0 ]);
+   setUniform('3fv', 'uGlowWormC', [ .25,.6,.85,  .76,.4,.6 ]);
+
+   setUniform('2fv', 'cloudPos', v.flatMap(d => [onScreen(d.position.x), onScreen(d.position.y)]));   // overshooting dots stay in view too
+
+   // SET AN ARRAY OF UNIFORMS OF TYPE mat4.
+   setUniform('3fv', 'uEyeColor', [R,G,B]);
+   setUniform('Matrix4fv', 'uM', false, [
+      1,.9,1.,0., .5,.5,.5,0,  0.,0.,0.,0.,  1,.8,.8,0,
+      1,.9,1.,0., .5,.5,.5,0,  0.,0.,0.,0.,  1,.8,.8,0
+   ]);
+
+
+}
+
+// START EVERYTHING.
+
+gl_start(canvas1, vs, fs);
+
+class Vehicle {
+  constructor(x, y) {
+    this.acceleration = createVector(0, 0);
+    this.velocity = createVector(0, -2);
+    this.position = createVector(x, y);
+    this.r = 6;
+    this.maxspeed = 10;
+    this.maxforce = 2;
+  }
+
+  // Method to update location
+  update() {
+    // Update velocity
+    this.velocity.add(this.acceleration);
+    // Limit speed
+    this.velocity.limit(this.maxspeed);
+    this.position.add(this.velocity);
+    // Reset accelerationelertion to 0 each cycle
+    this.acceleration.mult(0);
+  }
+
+  applyForce(force) {
+    // We could add mass here if we want A = F / M
+    this.acceleration.add(force);
+  }
+
+  // A method that calculates a steering force towards a target
+  // STEER = DESIRED MINUS VELOCITY
+  arrive(target) {
+    var desired = p5.Vector.sub(target, this.position); // A vector pointing from the location to the target
+    var d = desired.mag();
+    // Scale with arbitrary damping within 100 pixels
+    if (d < 100) {
+      var m = map(d, 0, 100, 0, this.maxspeed);
+      desired.setMag(m);
+    } else {
+      desired.setMag(this.maxspeed);
+    }
+
+    // Steering = Desired minus Velocity
+    var steer = p5.Vector.sub(desired, this.velocity);
+    steer.limit(this.maxforce); // Limit to maximum steering force
+    this.applyForce(steer);
+  }
+
+}
+
+let nose = null;   // the point the stars and eyes follow, in the original 500 x 500 nose space
+
+// The glowing dots sit on screen at -(nose - 250) / 250, and the largest, with its shimmer, is about .16 across.
+// Keep the point they chase, and the dots themselves, that far inside the edge so they never leave the picture.
+const EDGE = 40;   // in nose units (500 across)
+let inside = p => Math.min(500 - EDGE, Math.max(EDGE, p));
+let onScreen = p => -(inside(p) - 250) / 250;
+
+// When the mouse isn't over the scene, follow a slowly wandering point.
+function currentNose() {
+  if (nose) return { x: inside(nose.x), y: inside(nose.y) };
+  let t = Date.now() / 1000;
+  return { x: 250 + 110 * Math.cos(t * .37), y: 250 + 80 * Math.sin(t * .51) };
+}
+let eyeCenterX = .0;
+let eyeCenterY = .0;
+let v = [];
+let j = 0;
+let tx = 0;
+let ty = 0;
+
+function setup() {
+  noCanvas();   // p5 is only used for its vectors and animation loop
+  // map the mouse into the same space the webcam nose used (mirrored, 500 x 500)
+  canvas1.addEventListener('mousemove', function(e) {
+    let r = canvas1.getBoundingClientRect();
+    let cx = (e.clientX - r.left) * 400 / r.width, cy = (e.clientY - r.top) * 400 / r.height;
+    nose = { x: 500 - 1.25 * cx, y: 1.25 * cy };
+  });
+  canvas1.addEventListener('mouseleave', function() { if (!window.KW_FOLLOW) nose = null; });
+  for(let i = 0; i < 7;i++){
+    v[i] = new Vehicle(250, 250);
+    v[i].maxspeed = 1.5*(i+2);
+  }
+}
+
+function draw() {
+  {
+    let nose = currentNose();
+    let target = createVector(nose.x,nose.y);
+    for(let i = 0; i < 7;i++){
+      v[i].arrive(target);
+      v[i].update();
+    }
+    if(j==30){
+      tx = -((nose.x-250)/250);
+      ty = -((nose.y-250)/250);
+      j = 0;
+    }
+    eyeCenterX = lerp(eyeCenterX,tx,.01);
+    eyeCenterY = lerp(eyeCenterY,ty,.01);
+      j++;
+  }
+}
+
+
+  </script>
+
+</html>
+
