@@ -533,7 +533,8 @@
     // faces where she is going; once she stops, come closer and her own running away (inside her frame) takes
     // over. She waits in the side menu until the mouse first moves, and when the mouse leaves the window she
     // lingers wherever she is. Left near the zine with the mouse resting, she watches its pages turn. On a touch
-    // screen she follows a finger while it is down (and runs from it up close), and lingers once it lifts.
+    // screen the last touch is her mouse: she walks to a tap, keeps near it on screen as the page scrolls, and
+    // runs from a finger up close.
     var shy = items.filter(function (i) { return /cg\/hw4\//.test(i.dataset.src || ''); })[0];
     if (shy && !reduceMotion) {
         var area = function () {                  // where she may walk: the main column, as far as it is on screen
@@ -638,7 +639,9 @@
         document.addEventListener('mousedown', function (e) { if (isMouse()) press(true, [e.clientX, e.clientY]); });
         document.addEventListener('mouseup', function (e) { if (isMouse()) press(false, [e.clientX, e.clientY]); });
         document.documentElement.addEventListener('mouseleave', function () { cursor = null; wake(); });
-        // a finger: followed while it is down, a press where it lands, gone when it lifts
+        // a finger: followed while it is down, and where it last lifted stays her mark on the screen, like a
+        // resting mouse. So a tap sends her there, and as the page scrolls she keeps coming back to it on screen
+        // instead of scrolling away with the page. A press lands where the finger does.
         document.addEventListener('touchstart', function (e) {
             var p = touchPoint(e);
             if (p) { follow(p); press(true, p); }
@@ -646,10 +649,7 @@
         document.addEventListener('touchmove', function (e) { var p = touchPoint(e); if (p) follow(p); }, { passive: true });
         ['touchend', 'touchcancel'].forEach(function (type) {
             document.addEventListener(type, function (e) {
-                if (e.touches.length) return;
-                press(false, touchPoint(e));
-                cursor = null;
-                wake();
+                if (!e.touches.length) press(false, touchPoint(e));
             }, { passive: true });
         });
         window.addEventListener('scroll', wake, { passive: true });
