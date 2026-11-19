@@ -22,6 +22,8 @@ body{margin:0;background:var(--bg);color:var(--text);font:16px/1.6 var(--body);
   padding-left:max(0px,env(safe-area-inset-left,0px));padding-right:max(0px,env(safe-area-inset-right,0px))}
 .side{position:fixed;top:0;left:0;bottom:0;width:var(--side-w);padding:32px 28px 20px max(44px,env(safe-area-inset-left,0px));display:flex;flex-direction:column;overflow:hidden;background:var(--side);border-right:1px solid var(--line)}
 .kicker{font-size:13px;color:var(--muted);letter-spacing:.04em}
+.kicker .back{color:var(--muted);text-decoration:none}
+.kicker .back:hover,.kicker .back:focus-visible{color:var(--text)}
 h1{font:200 2.3rem/1.02 var(--heading);letter-spacing:.02em;margin:22px 0 22px;text-wrap:balance}
 .modes{display:flex;flex-direction:column;gap:11px;align-items:flex-start}
 .toggle{font:300 13px/1.5 var(--heading);letter-spacing:.16em;text-transform:uppercase;color:var(--muted);background:none;border:0;padding:0;cursor:pointer;text-align:left}
@@ -78,7 +80,8 @@ html.embed #gl{touch-action:pan-y}
 </style>
 
 <aside class="side">
-  <span class="kicker">SandScape</span>
+  <!-- back to where the visitor came from on this site (the art page, by default) -->
+  <span class="kicker"><a class="back" id="back" href="../../../gallery.html">&larr; art</a> &nbsp;/&nbsp; SandScape</span>
   <h1>shape the sand</h1>
   <div class="modes" id="modes">
     <span class="grp">From the camera to a surface</span>
@@ -117,6 +120,18 @@ html.embed #gl{touch-action:pan-y}
   </div>
 </main>
 
+<script>
+// "← art" returns to the page the visitor came from when that page is on this site, so the art page keeps its
+// place; arriving from elsewhere (a CV link, say), it simply opens the art page
+(() => {
+  const back = document.getElementById("back");
+  let ref = null;
+  try { ref = document.referrer ? new URL(document.referrer) : null; } catch (e) {}
+  if (back && ref && ref.origin === location.origin && ref.pathname !== location.pathname && history.length > 1) {
+    back.addEventListener("click", e => { e.preventDefault(); history.back(); });
+  }
+})();
+</script>
 <script>
 (() => {
 "use strict";
