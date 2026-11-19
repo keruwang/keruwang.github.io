@@ -7,7 +7,7 @@
     <meta name="description" content="Things Keru Wang makes outside of research: paintings, a photo zine, SandScape (an installation at the MIT Museum), and shaders written by hand.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@200;300;400&family=Source+Sans+3:wght@400&family=Dawning+of+a+New+Day&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@200;300;400&family=Source+Sans+3:ital,wght@0,400;1,400&family=Dawning+of+a+New+Day&display=swap" rel="stylesheet">
     <style>
         :root {
             --bg: #ffffff;
@@ -153,6 +153,35 @@
             pointer-events: none;
         }
 
+        /* SandScape, live: the museum table running in a frame; a still stands in while it loads, and the name and
+           credit step aside while the mouse is over the table */
+        .item.sand-live { background: #000; container-type: inline-size; }
+        .item.sand-live iframe,
+        .item.sand-live .still { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; display: block; }
+        .item.sand-live .still { object-fit: cover; z-index: 1; pointer-events: none; transition: opacity 0.6s; }
+        .item.sand-live.ready .still { opacity: 0; }
+        .item.sand-live .name,
+        .item.sand-live .credit { z-index: 2; transition: opacity 0.6s; }
+        .item.sand-live:hover .name,
+        .item.sand-live:hover .credit { opacity: 0; }
+        .sand-links {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: baseline;
+            gap: 10px 36px;
+            margin: 26px 0 0;
+            font-family: "Oswald", "Helvetica Neue", Arial, sans-serif;
+            font-weight: 300;
+            font-size: 13px;
+            letter-spacing: 0.16em;
+            text-transform: uppercase;
+        }
+        .sand-links a { color: var(--text); text-decoration: none; border-bottom: 1px solid var(--muted); padding-bottom: 2px; }
+        .sand-links a:hover { border-bottom-color: var(--text); }
+        .sand-links .sand-hint { color: var(--muted); flex-basis: 100%; text-align: center; font-family: "Source Sans 3", "Helvetica Neue", Arial, sans-serif; font-style: italic; font-size: 12.5px; letter-spacing: 0.02em; text-transform: none; }
+        @media (hover: none) { .sand-links .keys { display: none; } }   /* no shift key on a phone */
+
         .item.zine { overflow: visible; }
         .item.zine iframe { width: 100%; height: 100%; border: 0; background: transparent; }
 
@@ -167,6 +196,12 @@
         .item.creature { pointer-events: none; }
 
 
+        /* ---------- the sketch under the menu ---------- */
+        .side-menu { width: max-content; }   /* as wide as the longest menu word... */
+        .side-sketch { margin: 30px 0 0; contain: inline-size; }   /* ...which the sketch then fills (it adds no width of its own) */
+        .side-sketch img { display: block; width: calc(100% - 0.16 * 13px); height: auto; }   /* minus the letter-spacing after the last letter */
+        @media (max-height: 640px) { .side-sketch { display: none; } }   /* short windows: keep the menu clear */
+
         /* ---------- smaller screens ---------- */
         @media (max-width: 1100px) {
             :root { --side-w: 210px; }
@@ -176,6 +211,8 @@
             .side h1 { margin: 26px 0 20px; font-size: 2rem; }
             .filters { flex-direction: row; flex-wrap: wrap; gap: 8px 18px; }
             .side small { display: none; }
+            .side-sketch { display: none; }
+            .side-menu { width: auto; }
             .wall { margin-left: 0; padding: 24px 16px 72px; }
             .group + .group { margin-top: 96px; }
             .group-label { margin-bottom: 28px; }
@@ -188,14 +225,22 @@
 <aside class="side">
     <a class="back" href="index.html">← Keru Wang</a>
     <h1>art</h1>  <!-- "art &amp;<br>baking" once the baking photos are up -->
+    <div class="side-menu">
     <nav class="filters" aria-label="Show">
         <button data-filter="all" aria-pressed="true">All</button>
+        <button data-filter="installation" aria-pressed="false">Installation</button>
         <button data-filter="painting" aria-pressed="false">Paintings</button>
         <button data-filter="zine" aria-pressed="false">Zine</button>
-        <button data-filter="installation" aria-pressed="false">Installation</button>
         <button data-filter="graphics" aria-pressed="false">Shaders</button>
         <!-- <button data-filter="food" aria-pressed="false">Baking</button>  (back with the photos) -->
     </nav>
+    <!-- a small sketch under the menu, as wide as its longest word; its paper was flattened to pure white
+         and cropped to the drawing, so the pencil edges line up with the words above -->
+    <figure class="side-sketch">
+        <img src="gallery/paintings/tulip-mirror-sketch.jpg?v=2" width="270" height="335"
+             alt="Colored-pencil sketch: a red tulip beside a small round mirror that reflects it, on a dark blue and black ground">
+    </figure>
+    </div>
     <small>&copy; 2026 Keru Wang</small>
 </aside>
 
@@ -207,6 +252,36 @@
     To add a painting:  <figure class="item painting" data-a="0.8"><img src="gallery/paintings/NAME.jpg" alt="..."></figure>
 -->
 <main class="wall" id="wall">
+
+    <!-- installation: SandScape, on permanent view at the MIT Museum. The wall holds a live web version of the
+         museum table, its name written across it until the mouse comes near; under it, the full simulator and the
+         project's own page (photos, credits, links). -->
+    <section class="group" data-kind="installation">
+        <h2 class="group-label">Installation</h2>
+        <div class="compose" data-max="854">
+            <div class="across">
+                <figure class="item installation sand-live" data-a="1.739"
+                    data-src="gallery/sandscape/sim/index.html?embed&amp;v=4"
+                    data-title="SandScape, the MIT Museum version, live: drag the sand to shape it and the water follows">
+                    <img class="still" src="gallery/sandscape/sim.jpg?v=2" alt="">
+                    <svg class="name" viewBox="0 0 1000 575" aria-hidden="true">
+                            <!-- a little noise pushes the pen line about, so it reads as written by hand -->
+                            <filter id="by-hand" x="-5%" y="-30%" width="110%" height="160%">
+                                <feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="6"/>
+                                <feDisplacementMap in="SourceGraphic" scale="7" xChannelSelector="R" yChannelSelector="G"/>
+                            </filter>
+                            <text x="100" y="338" textLength="800" lengthAdjust="spacingAndGlyphs" filter="url(#by-hand)">SandScape</text>
+                        </svg>
+                    <span class="credit">Permanently exhibited at the MIT Museum<br>In collaboration with the MIT Media Lab</span>
+                </figure>
+            </div>
+        </div>
+        <p class="sand-links">
+            <span class="sand-hint">Drag the sand to shape it<span class="keys"> · shift-drag to dig</span></span>
+            <a href="gallery/sandscape/sim/">Full simulator →</a>
+            <a href="sandscape.html">About the project →</a>
+        </p>
+    </section>
 
     <section class="group" data-kind="painting">
         <h2 class="group-label">Paintings</h2>
@@ -255,30 +330,6 @@
             <figure class="item zine">
                 <iframe id="zine-frame" src="zine.html?embed&amp;light&amp;v=5" title="dark book, a photo zine (turns its own pages; click or drag to take over)"></iframe>
             </figure>
-        </div>
-    </section>
-
-    <!-- installation: SandScape, on permanent view at the MIT Museum. Its rendered landscape loops on the wall with
-         its name over it, and opens a page of its own (photos, credits, links). -->
-    <section class="group" data-kind="installation">
-        <h2 class="group-label">Installation</h2>
-        <div class="compose" data-max="854">
-            <div class="across">
-                <figure class="item installation" data-a="1.739">
-                    <a href="sandscape.html" aria-label="SandScape, an installation on permanent view at the MIT Museum">
-                        <video src="gallery/sandscape/loop.mp4?v=1" poster="gallery/sandscape/loop.jpg?v=1" muted loop playsinline preload="none" aria-hidden="true"></video>
-                        <svg class="name" viewBox="0 0 1000 575" aria-hidden="true">
-                            <!-- a little noise pushes the pen line about, so it reads as written by hand -->
-                            <filter id="by-hand" x="-5%" y="-30%" width="110%" height="160%">
-                                <feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="6"/>
-                                <feDisplacementMap in="SourceGraphic" scale="7" xChannelSelector="R" yChannelSelector="G"/>
-                            </filter>
-                            <text x="100" y="338" textLength="800" lengthAdjust="spacingAndGlyphs" filter="url(#by-hand)">SandScape</text>
-                        </svg>
-                        <span class="credit">Permanently exhibited at the MIT Museum<br>In collaboration with the MIT Media Lab</span>
-                    </a>
-                </figure>
-            </div>
         </div>
     </section>
 
@@ -481,6 +532,27 @@
         new IntersectionObserver(function (entries) {
             entries.forEach(function (e) { e.isIntersecting ? startFrame(item, stage) : stopFrame(stage); });
         }, { rootMargin: '300px 0px' }).observe(item);
+    });
+
+    // SandScape, live: loads when it comes near the screen and is let go when it leaves (it is a full simulation)
+    items.filter(function (i) { return i.classList.contains('sand-live'); }).forEach(function (item) {
+        function start() {
+            if (item.querySelector('iframe')) return;
+            var f = document.createElement('iframe');
+            f.src = item.dataset.src;
+            f.title = item.dataset.title;
+            f.addEventListener('load', function () { setTimeout(function () { item.classList.add('ready'); }, 900); });
+            item.insertBefore(f, item.firstChild);
+        }
+        function stop() {
+            var f = item.querySelector('iframe');
+            if (f) f.remove();
+            item.classList.remove('ready');
+        }
+        if (!('IntersectionObserver' in window)) return start();
+        new IntersectionObserver(function (entries) {
+            entries.forEach(function (e) { e.isIntersecting ? start() : stop(); });
+        }, { rootMargin: '400px 0px' }).observe(item);
     });
 
     // ---------- the eyes and the shy triangle keep watching the mouse anywhere on the page ----------

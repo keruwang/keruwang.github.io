@@ -1,0 +1,1197 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="SandScape web demo: shape a sand table in your browser and watch the water find its way, from depth camera to mesh to the MIT Museum version.">
+<script>if (/[?&]embed\b/.test(location.search)) document.documentElement.classList.add("embed");</script>
+<title>SandScape Web Demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@200;300;400&family=Source+Sans+3:wght@400;600&family=JetBrains+Mono:wght@400&display=swap">
+<style>
+/* Same manner as the Celestial Blossom recognizer: a quiet left column and one big surface. Black, because the sand table lives in a dark room. */
+:root{
+  --bg:#000; --side:#0a0b0c; --text:#e8ecef; --muted:#868d93; --line:#1d2125; --art:#7cc0ea; --art-deep:#3a8cc2;
+  --heading:"Oswald","Helvetica Neue",Arial,sans-serif;
+  --body:"Source Sans 3","Helvetica Neue",Arial,sans-serif;
+  --side-w:440px;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.6 var(--body);
+  padding-left:max(0px,env(safe-area-inset-left,0px));padding-right:max(0px,env(safe-area-inset-right,0px))}
+.side{position:fixed;top:0;left:0;bottom:0;width:var(--side-w);padding:32px 28px 20px max(44px,env(safe-area-inset-left,0px));display:flex;flex-direction:column;overflow:hidden;background:var(--side);border-right:1px solid var(--line)}
+.kicker{font-size:13px;color:var(--muted);letter-spacing:.04em}
+h1{font:200 2.3rem/1.02 var(--heading);letter-spacing:.02em;margin:22px 0 22px;text-wrap:balance}
+.modes{display:flex;flex-direction:column;gap:11px;align-items:flex-start}
+.toggle{font:300 13px/1.5 var(--heading);letter-spacing:.16em;text-transform:uppercase;color:var(--muted);background:none;border:0;padding:0;cursor:pointer;text-align:left}
+.toggle:hover{color:var(--text)}
+.toggle[aria-pressed="true"]{color:var(--art)}
+.toggle[aria-pressed="true"]::before{content:"— "}
+.step .n{display:inline-block;width:22px;color:var(--muted);letter-spacing:0}
+.step[aria-pressed="true"] .n{color:var(--art)}
+.step[aria-pressed="true"]::before{content:none}
+.grp{font-size:11.5px;color:var(--muted);letter-spacing:.04em;margin-top:8px}
+.grp:first-child{margin-top:0}
+button:focus-visible{outline:1px solid var(--art);outline-offset:4px}
+.seasons{display:flex;gap:18px;margin:0 0 0 22px}
+.seasons[hidden]{display:none}
+.seasons .toggle{font-size:12px;letter-spacing:.14em}
+.seasons .toggle[aria-pressed="true"]::before{content:none}
+.seasons .toggle[aria-pressed="true"]{border-bottom:1px solid var(--art)}
+.walk{margin-top:24px;flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:10px;padding-right:4px}
+.walk h2{font:300 1.6rem/1.15 var(--heading);letter-spacing:.02em;margin:0}
+.walk p{margin:0;font-size:16.5px;line-height:1.6}
+.walk p.muted{color:var(--muted);font-size:15px}
+.walk h3{font:300 12.5px/1.4 var(--heading);letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin:12px 0 0}
+.walk code{display:block;white-space:pre;overflow-x:auto;font:14px/1.55 "JetBrains Mono",ui-monospace,Menlo,monospace;color:var(--art);background:#111417;border:1px solid var(--line);border-radius:4px;padding:8px 10px}
+.walk .dg{display:block;width:100%;height:auto}
+.walk .key{font-size:14.5px;color:var(--muted)}
+.walk .key b{font-weight:600}
+.filter{display:flex;gap:16px;align-items:baseline;width:100%;margin-top:10px;padding-top:16px;border-top:1px solid var(--line)}
+.filter .flabel{font:300 13px/1.5 var(--heading);letter-spacing:.16em;text-transform:uppercase;color:var(--text);margin-right:auto}
+.filter .toggle[aria-pressed="true"]::before{content:none}
+.filter .toggle[aria-pressed="true"]{border-bottom:1px solid var(--art)}
+.foot{margin-top:auto;padding-top:16px;border-top:1px solid var(--line)}
+.foot p{margin:0;font-size:13px;color:var(--text);line-height:1.6}
+.side small{display:block;padding-top:8px;font-size:11px;color:var(--muted);line-height:1.5}
+.wall{position:fixed;top:0;right:0;bottom:0;left:var(--side-w);padding:24px max(24px,env(safe-area-inset-right,0px)) 24px 24px}
+.frame{position:relative;width:100%;height:100%}
+.frame canvas{position:absolute;inset:0;display:block;width:100%;height:100%}
+#gl{touch-action:none;cursor:crosshair}
+#gl.orbiting{cursor:grabbing}
+#overlay{pointer-events:none}
+@media (max-width:760px){
+  .side{position:static;width:auto;padding:28px max(16px,env(safe-area-inset-right,0px)) 16px max(16px,env(safe-area-inset-left,0px));border-right:0;border-bottom:1px solid var(--line);overflow:visible}
+  h1{margin:20px 0 18px;font-size:2rem}
+  .walk{margin-top:18px;overflow:visible}
+  .foot{margin-top:18px}
+  .side small{display:none}
+  .wall{position:static;height:min(110vw,620px);padding:12px max(16px,env(safe-area-inset-right,0px)) 24px max(16px,env(safe-area-inset-left,0px))}
+  html,body{height:auto}
+}
+/* ?embed: just the table (the museum version), for the art page */
+html.embed .side{display:none}
+html.embed,html.embed body{height:100%}
+html.embed .wall{position:fixed;inset:0;height:auto;padding:0}
+html.embed #gl{touch-action:pan-y}
+</style>
+
+<aside class="side">
+  <span class="kicker">SandScape</span>
+  <h1>shape the sand</h1>
+  <div class="modes" id="modes">
+    <span class="grp">From the camera to a surface</span>
+    <button class="toggle step" data-mode="raw" aria-pressed="true"><span class="n">1</span>raw depth</button>
+    <button class="toggle step" data-mode="filtered" aria-pressed="false"><span class="n">2</span>filtered</button>
+    <button class="toggle step" data-mode="mesh" aria-pressed="false"><span class="n">3</span>mesh</button>
+    <button class="toggle step" data-mode="slope" data-group="vec" aria-pressed="false"><span class="n">4</span>vector fields</button>
+    <div class="seasons" id="vecs" hidden>
+      <button class="toggle" data-vec="slope">slope</button>
+      <button class="toggle" data-vec="wind">wind</button>
+    </div>
+    <span class="grp">What we draw on it</span>
+    <button class="toggle step" data-mode="museum" aria-pressed="false"><span class="n">5</span>museum version</button>
+    <button class="toggle step" data-mode="trails" aria-pressed="false"><span class="n">6</span>water trails</button>
+    <button class="toggle step" data-mode="seasons" aria-pressed="false"><span class="n">7</span>seasons</button>
+    <div class="seasons" id="seasons" hidden>
+      <button class="toggle" data-season="0">spring</button>
+      <button class="toggle" data-season="1">autumn</button>
+      <button class="toggle" data-season="2">winter</button>
+    </div>
+  </div>
+  <div class="walk">
+    <h2 id="mTitle"></h2>
+    <div id="mBody" style="display:flex;flex-direction:column;gap:10px"></div>
+  </div>
+  <div class="foot">
+    <p>Drag on the sand to pour. Shift-drag to dig.<br>Drag the dark background to turn the table, scroll to zoom. Keys 1–7 switch steps.</p>
+    <small>Shading and drainage adapted from TMG-SandScape (MIT Media Lab Tangible Media Group, 2021, for the MIT Museum). Noise is Ken Perlin’s. Here a simulated depth camera stands in for the Kinect.</small>
+  </div>
+</aside>
+
+<main class="wall">
+  <div class="frame" id="box">
+    <canvas id="gl" aria-label="Sand table in 3D. Drag to pour sand, shift-drag to dig, drag the background to orbit."></canvas>
+    <canvas id="overlay" aria-hidden="true"></canvas>
+  </div>
+</main>
+
+<script>
+(() => {
+"use strict";
+const EMBED = document.documentElement.classList.contains("embed");
+const N = 128, W = 80, H = 16, S = W / (N - 1);
+const WR = 512, PRES = 1024;              // water-trail and particle texture sizes
+
+const sand = new Float32Array(N * N), meas = new Float32Array(N * N), tmp = new Float32Array(N * N), prev = new Float32Array(N * N);
+const hgt = new Float32Array(N * N), delta = new Float32Array(N * N);
+const pos = new Float32Array(N * N * 3), nor = new Float32Array(N * N * 3), dir = new Float32Array(N * N * 3), hTex = new Uint8Array(N * N);
+
+const st = {
+  mode: "museum", filter: true, brush: 6, slump: true, noise: true, ema: true, smoothRound: 7, smoothWeight: 5, cloud: 5,
+  yaw: -2.13, pitch: 0.47, dist: 160,
+  // seasons: transition from -> to, prog 0..1; snowF 0..1 is how far the snow reaches down from the peaks
+  from: 2, to: 0, prog: 1, seasonClock: 0, snowF: 0, hmax: 8,
+  pointer: { down: false, x: 0, y: 0, dig: false, orbit: false, lx: 0, ly: 0, inside: false, hit: null },
+  t0: performance.now(),
+  museumT0: performance.now(),
+};
+const idx = (i, j) => j * N + i;
+const clamp = (x, a, b) => x < a ? a : x > b ? b : x;
+const smooth = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
+function hash(i, j) { let h = (i * 374761393 + j * 668265263) | 0; h = (h ^ (h >>> 13)) * 1274126177 | 0; return ((h ^ (h >>> 16)) >>> 0) / 4294967295; }
+function vnoise(x, y) { // smooth value noise for presets
+  const xi = Math.floor(x), yi = Math.floor(y), fx = x - xi, fy = y - yi;
+  const u = fx * fx * (3 - 2 * fx), v = fy * fy * (3 - 2 * fy);
+  const a = hash(xi, yi), b = hash(xi + 1, yi), c = hash(xi, yi + 1), d = hash(xi + 1, yi + 1);
+  return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v;
+}
+function fbm(x, y) { return vnoise(x, y) * .55 + vnoise(x * 2.1, y * 2.1) * .3 + vnoise(x * 4.3, y * 4.3) * .15; }
+
+// ---------------------------------------------------------------- presets
+// The default table: a terrain sculpted by hand in the museum version, 128x128 heights, one byte each (0..255 = 0..H).
+const DEFAULT_SAND = "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xsnMz9LV0s7KxsC7ta+po52XkYqEfXdwaWNcVU9IQTo6QEdOVVtiaXB2fYSKkZecn6KlqKqtr7CurKqopJ+YkouFfnhxa2ReWFNTU1NTVFRUVFNTUU9NTBshKC8wLSouNDk+Q0hNUVVZXWJmam5zd32Ch42TmJ6kqa6zuL3BxcnMz9PW2dvY1M/KxL65s62noZqUjYeAenNsZl9YUktEPTxDSlFXXmVscnmAh42UmqGmqayvsbS2t7Wzsa6oopuVjoiBe3RuaGJcWVpaWVpbW1tbWllYVlNWGyIpMDAtLTM4PUNITVFWWl9jZ2tvdHh8gYaMkZecoqitsri9wsbLz9LW2dzf4d7Z087Iwry2sKqknpeQioN9dm9oYltUTkdAP0ZNU1phaG91fIOKkJeepKqvs7W4u72+vLq3sqyln5iSi4V+eHFrZmBfYGBgYWFiYmFhYF9dWmAcIykwMS4xNzxCR0xRVltgZGhtcXV5fYKGi5CVm6CmrLG3vMHGy9DU2Nzg4+bn4t3X0szGwLq0rqehmpONhoB5cmtlXldQSkNCSU9WXWRrcXh/hoyTmqGnrbS5vL/BxMXDwLu1r6iim5SOiIF7dW9qZ2ZnZ2doaGloaGhnZmRhax0jKjExMDU7QEZLUVZbYGVpbnJ2en6Dh4uQlJmfpKqwtbvAxsvQ1dne4ubp7Ozm4dvVz8rEvbexqqSdlpCJgnx1bmhhWlNNRkVLUllgZ210e4KIj5adpKqxt73DxsjKy8nFv7iyq6WemJGLhH55c3BtbW5ubm5vb29vbm5samh3HiQrMjI0OT9ESk9VWl9kaW5zd3uAhIiMkJWZnqOorrO5v8TKz9Ta3uPo7O/z8Ovl39nTzcfBurStp6CZk4yFf3hxamRdVk9JSE5VXGNpcHd+hIuSmaCmrbS6wcfMz9HSz8jCu7WuqKGblI6Ig316d3R0dXV0dXZ2dnZ1dHNxb4MfJSwzNDg+Q0hOVFleZGluc3h8gYWJjZKWmp6jp6yyt73DyM7T2d7j6O3x9fn07unj3dfRysS9t7Cqo5yVj4iBe3RtZmBZUkxOUVhfZWxzeoCHjpWcoqmwt73EytDW2NjSy8W+uLGrpJ6YkYyHhIB9ent7e3t8fX19fHx7enh1jiMoLjQ4PUJHTVJYXWNobXN4fYGGio+Tl5ufpKissba7wcfM0tfd4ujt8fb7/vjy7Obg2tTOx8C6s6ymn5iSi4R+d3BpYlxVUlVYW2Fob3Z9g4qRmJ6lrLO5wMfL0NXZ3NXPyMG7tK6noZuWkI2Kh4SBgYKCgoODhIODg4KBf3yXKC0yNzxBRktRVlxhZ2xyd3yBhouQlJicoaWprbG2usDFytDW2+Hn7PH2+////Pbw6uTe19DKw722r6mim5WOh4B6c2xlX1hZXF9hZGlwd36Ei5KZn6ats7i9wsfL0NPY2NHLxL64sauln5qXk5GNioeIiYmJioqKioqJiYeFg54tMjY7QUZLUFVaYGVrcHZ7gIaLkJSZnaKmqq6yt7u/xMnP1Nrf5evw9fv/////+fPt5+Ha083GwLmyrKWel5GKg3x2b2hhXWBjZWhrbnF3foWMkpmdo6mutLi9wsbKztLW1c7Iwbu0rqmjoJ2al5SRjo+QkI+QkZGRkZCQjoyKoTI2O0BFSk9VWl9kaW90en+Fio+UmZ6jp6uwtLi8wMXJztPY3uPp7/T6///////99/Hq5N3X0MnDvLWuqKGak42Gf3hya2RkZ2lsb3J1d3p/houQlJqfpaqvs7i8wMTIzdDU0cvEvriyraqnpKGdm5eUlpeXlpeYmJiXl5aVk5CjNztARUlPVFleY2htc3h+g4mOlJmeo6issbW5vcLGys7T19zi5+3z+P7////////69O3n4NnTzMW/uLGrpJ2WkImCe3Rua2tucHN2eXt+gYSBhoqQlpugpaqus7a7vsPHy8/TzsfBvLezsK2qp6ShnpucnZ2dnp6fn56enZyal6E8QEVKTlNYXWNobXJ3fIKIjZKYnaKnrLG2ur7Dx8vP1Njc4ebr8fb8//////////338Orj3NbPyMK7tK2noJmSjIV+eHVycnR3en1/goN/fX2Bh4ySl5ygpamtsbW5vcHGyc7Ry8bAvbq3tLGuqqejoJ+in56dnqKkpaWko6Gen0BFSk9TWF1iZ2xxdnuBhoyRl5yhp6yxtru/xMjM0NXZ3eHm6u/19/j9//////78+vjz7ebf2dLLxL63sKmjnJWOiIF7e3l5e36Bg4OBfXl2d32DiI2Sl5ugo6irsLS4vMDEyM3PysfDwL26t7Sxraekop2Zl5aYm52goqOhnpubRUpPVFhdYWZrcXZ7gIWKkJWboKarsLa7wMTJzdLW2t7i5+vv9PPx9fj7+/r59/X08e/t6eLb1c7HwLqzrKWemJGKg312d3h5e3x9fHp3c3B0eX6EiI2SlpqeoqaqrrK2u77Dx8zQzcrHxMG+u7awq6WfmZSRkJKUl5mbnJqXlJRJTlRYXWJma3B1en+EiY6UmZ+kqq+1ur/Eyc7T19vf5Ojs8PX38O3w8/X19PLw7+3r6Obj4dvUzcfAubKspZ6XkIqDfHVxcnN0dnZ1c3FuanB1en+DiI2QlZidoaSprbG1ur3CxsvQ0M3Kx8O8tq+popyVkIyJi42QkpWWk5COjE5TWF1iZ2twdXl+hImOk5ido6ius7m+xMnO09jc4eXp7fH2+vbv6Ovt7u7t6+ro5uTi39za19LLxL63sKminJWOh4F6c2xsbW1vcG9tamdma3F1en6Dh4uPk5ebn6Ooq7C0uL3CxsvNz83GwLmzrKafmZKNiISEh4mMjo+MioeFU1ddYWdrcHV5foOIjZKYnaKnrLK3vcLIzdLX3OHm6u7z9/v69O3m5ufo5+bl4+Hf3dvY1tPQz8nCu7Wup6CZk4yFfnhxamZmZ2hpaGZjYWJnbHB1eX2BhYmNkZaZnqKmqq+zuLzBxMbIycO9trCpo5yWj4mFgH2AgoWHiIaDgH1XXGFma3B1en+DiIySl5yhpquwtrvBxszR19zh5uvv9Pj8/Pbx6uTh4eHg397c2tnW1NHPzMnIx8C5sqylnpeRioN8dW9oYWBhYWJhX11aXWJna3BzeHuAhIiMkJSYnaGlqa+zuLu+wMHCwLqzrKafmZKMh4F+enl8foCBf3x5d1xhZmtwdXp/hIiNkZaboKarsLW6wMXL0NXb4OXr8PT5/fz38u3n4drb29rZ19XU0tDNy8jFw8LCvrewqaOclY6IgXpzbWZfW1tbW1pYVlRZXWJmam5ydnp+g4aLj5OXnKClqa6ytbe5u7u6trCpo5yWj4qEf3p4dnV3e358dnNwYWZqcHR5foOIjZKWm6Clqq+0ub7Eyc/U2t/k6u/0+f779/Lu6ePe19TU09LQz83LycfEwb+8u7u7ta+ooZqTjYZ/eHJrZF1XVVVVU1FPT1RYXWBlaG1xdXl9gYWKjZKWm6ClqKyusLK0tbOyraagmZOMh4F8eHV1dXd6fnpzbGlma3B0eX6DiI2Sl5ugpKmutLm+w8jN09je4+nu8/n+/vjy7ejk39rUzs3My8rIxsTCwL27uLW0tLS0raagmZKLhX53cGpjXFVPT05NS0hKT1NXW19jZ2tvc3h7gISJjZKWm5+ipaepq62urauoo52WkImEf3p2dHN0d3t/eXJrZGxwdHl9goeMkZaboKWprrO4vcLHzNHX3OLn7fL4/f/69O7o49/a1tDKxsXEw8G/vbu5trSxrq2tra2spZ+YkYqEfXZvaGJbVE1JSEZEQkVKTVJVWl1hZmpucnd6f4OIjJGVmJyeoKOlpqempKKfmpONh4F8d3RycnR3e353cGpjcXV4fYGGi5CVmp+lqq6zuLzBx8zR1tvg5uvx9vz//ffx6uTf2tXRzMfBv728urm3tbKwraqop6enpqWknpeQiYN8dW5oYVpTTUZCPz07QENITFBUWFxgZWhtcXV6f4OIjI+SlZeanJ6goJ+dnJmVkIqEfnl1cnBxc3d8enRuZ2B4en2AhYmOk5ieo6mus7i8wcbL0Nbb4OXq7/X6///69O3n4dvV0MzHwr24t7W0srCuq6mmpKGgoKCfn52bl5CJg3x1bmdhWlNMRj85NjY6PkJGSk5TVltfY2dscHV5foKFiIuOkJOVl5mamJeVk4+MhoF7dnJvbm5xdXl1cGtkXX5+gYSIjJGVm6CmrLK4vcLGy9DV2t/k6e7z+f7//Pbw6uTe19HLx8K+ubOwrq2rqaeloqCdmpmZmZmYlpSWj4mCe3RuZ2BZUkxFPjcxMDU4PUFFSU1RVVpeYmZrcHV5fH+ChYeKjI6QkpOSkI6MioaCfXhzb2xqa21xcm9rZ2FahIKFhomNkZeco6essbe9w8rQ1Nne5Onu8/j9//758+3n4NrUzsjCvbm0r6qopqSioJ6bmZaTkpKSkpGQkJWOiIF6c2xmX1hRS0Q9NjArLzM3Oz9DSEtQVFldYmZrb3J1eHt+gIOFh4qLjIuJh4WDgHx4dXBraGdnaWtraWViXVeKhYaIiY2Rlpmeo6iutbvCydDX3ePo7fL3/P//+vXv6ePd19HKxL64s6+rpqGfnZyZl5WSj42Li4uLiomMkY6HgXpzbGVfWFFKRD02LygqLjI2Oj5CR0pPU1hdYWVpbG9ydXd6fH6Bg4SFhIKAfnx6dnNwbGhkYmJjZWViX1xYVJGHh4aHiYyQlJqgp620u8LIz9bd4+rx9/z+/fr28evm4NrTzcfBu7WvqqWhnJiXlZOQjouIhoWFhYSEgoeMjYeAeXJsZV5XUEpDPDUvKCYoLDA1OD1BRkpPU1hcX2JlaGtucHN1eHp8fn99fHp4dnNwbWpnZGFeXV1fXltYVVJPmIeFgoCDhoyTmaCnrrW7wsnQ1t3j6fD3+Pf29PHs5+Lc1tDKxL23sauloJyXk5COjIqHhIJ/fn5+fn1+g4iNhn94cmtkXVZQSUI7NS4nJiUmKy8zNzxARUlOUlVZXF9hZGdqbG9xc3V3eHZ1c3FvbWpnZGJfXVpYWFhYVVJPTEmegX57eX+GjZSaoaivtrzDytHX3uTp7vHx8O/u6+fi3djSzMbAurSup6Gcl5KOiYeFg4B+e3h3d3d3dnl/g4eFfndxamNcVk9IQTo0LSYlJSUlKi4yNzxARUlMT1JVWFtdYGNlaGpsbnBxcG5samhmY2BeW1lYVlRTU1RQTElFQqV6d3R5gIeOlJuiqbC2vcTL0djf5urs6+rp6efl4t7Z1M7Jw723saqknpiSjYmEgH58eXd0cXBwcHBwdXp+goR9dm9pYltUTkdAOTMsJiYlJSUlKS0yNjs/QkVIS05RVFdZXF9hY2ZoaWppZ2VjYV9cWldVU1JRUE9PT0tHQz88rHNwc3qBiI6VnKOqsLe+xcvS2eDm5+Xk4+Pi4N7c2NTPysW/ubOtp6GblI6IhH97eHVzcG1rampqaWtwdHl9gnt1bmdgWVNMRT44MSomJiUlJSUlKC0yNTk8P0JFSEpNUFNVWFpdX2FjY2JgX11aWFZTUU9NTEtLTExMSERAOjazbW10e4GIj5aco6qxt77FzNPZ4OLg393c3NvZ2NXSzsrGwbu2sKqknZeRi4V/enZxbmxpZ2RjY2NjZmtvdHl9enNsZV5YUUpDPTYvKCYmJiUlJSUmKCwvMjU4Oz5BREZJTE9RU1ZYWlxdW1pYVlRRT01KSEdGRkdISkpHQj03MLlpbXR7gYiPlpyjqrG3vsXM09nd29nY1tbV1NPRz8zIxcG8t7KspqCalI6HgXt1cGxoZWNgXVxcXF1hZWpvc3d2cWpjXFVPSEE6NC0nJiYmJiUlJiYmJyksLzI0Nzo9QEJFSEpNT1FTVVZVU1FPTUtIRkRCQUBBQ0VHSUhCPDUvwWdtdHuCiI+WnaOqsbi/xczT2NbU09HQz87OzMrJxsK/u7ezrqijnZaQioR+eHFsZ2JeXFlWVVVVWFxhZmptcXBsZ2FaU0xFPzgxKicmJiYmJiYmJicnJycoKy4wMzY5PD5BREZIS01OT05MSkhGREI/PTw7Ozw/QkZJSkU+ODPJZ251e4KJkJadpKuxuL/GzdPRz87MysnIyMfFw8K/vLm1sq6ppJ+Zk42HgXp0bmhiXVlVUlBOTk5SV1xgZGdqamdjXldQSkM8NS8oJyYmJiYmJiYmJycnJycnJyosLzI1ODo9P0JERkhIR0VEQj89Ozg3NTU2ODtARUpOSEI8ONFob3Z8g4qRl56lrLK5wMfOzMrJx8XDwsHBwL69u7m2sq+sqKSfmpWPiYN9d3FrZF5YVE9MSUhISU5SVlpdYGNjYF1ZVE5HQDkzLCgnJiYmJiYmJiYnJycnJygoKCgoKy4xMzY4Oz0/QUJAPz07OTY0MjAvMDE3PUJITVJLRkE92Wpwd36Fi5KZoKattLvCyMfFxMLAvr27u7q5uLa1s6+sqaain5uWkYuGgHp0bWdhW1VPSkZCQUFESU1RVFdaXFxaV1RQS0Q9NzAqKCcmJiYmJiYmJycnJycnKCgoKSkpKSotLzI0Njg6Ozo4NjQyMC0sLC0wMzpAR0xRVVBLR0PgbnJ5f4aNlJuhqK+2vMPCwL+9u7m4trS0s7Kxr66sqaajn5yZlZGMh4J8dnBqZF5YUUtFQTw6Oj9DR0pNUFNWVVNQTUpGQTs0LSooJyYmJiYmJicnJyYnJygoKCkpKSoqKikoKy0vMTM0MzEvLSspKSssLjE2PENKUFVZVVBNSeV0eHyBiI+WnaOqsbi+vry6uLa0s7Gvrq2trKqop6Win5yZlpKPi4eDfnhzbWdhWlROSEI8NzM2Oj1BREdJTE9PTElGREA8ODEtKignJyYmJiYmJycnJycnKCgoKCkqKioqKSgnJykrLC0sKigoKCgpKy0vMjg/Rk1TWl5aVlJN6Ht+gYWLkZifpqyzurq3tbOxr62sqqinpqalo6GgnpyZlpOPjImFgn55dG9pY11XUUtEPjgyLzA0Nzo9QENFSElJR0NAOzczMC0rKSgnJycnJycmJicnJygoKCgoKSkqKiopKCgnJycoKCgoKCgoKCkqLTA0O0JJT1ZdY2BcVlDrgYSIi4+Um6Kor7a2s7GurKqop6WjoqCfn56cm5mXlZKPjImGg398eHRva2VfWVNNR0E7NS4wMTQ2OTw/QkVISkpJRUI+OTUxLiwqKCcnJycnJiYmJycoKCgoKCkpKSkpKSkoKCcnKCgpKCgoJycoKCosMDc+REtSWV9mZWBZU+yHi46RlZiepKuysq+tqqelpKKgnpybmZmYl5aUk5GOjImGg398eXZyb2tmYVtWUEpEPjcxMDIzNjk7PkFFSEtNTUxJRUI+OTQwLSspKCcnJiYmJiYnKCgoKSkpKSkpKSkpKSgnJycoKCkpKSgnJycoKSwyOUBHTVRbYmlqY1xV646RlJebnqKorq6rqaajoZ+dm5mXlpSTkpGRj42MioeFg398eXZzb2xpZWFcV1JMRkA6NDEyNDY5Oz5CRUlMTlBRUU5LR0I9NzIvLCopKCcmJiYmJicoKCkpKioqKSkoKCkpKCcnJygpKSkpKCcoKCksMDY8Q0lQV15ka2xlXljolJeanqGkqKyrqKWin5yamJaUkpGPjYyLi4qIhoWDgX58eXZzb2xpZmNfW1dTTkhDPTczNDU3OTw/QkVJTVFUVldWVFBLRkA6NDAtKyooJyYmJiYmJygpKSoqKioqKSkpKSkoKCcoKCkpKSoqKSorLjI1OkBFTFNaYGdubWZgWeaanaGkp6uurKainpuYlpORj42MioiGhYSEg4GAfnx7eHZzb2xpZmNfXFlVUk5JRD85NjY3ODo8PkFFSU1RVVlbXFxZVVBKQz03Mi4rKigoJyYmJicoKSkpKioqKyoqKikpKSkpKSkpKSorKywsLzI1ODs/Q0lPVVxjanFuZ2Ba4J+jp6qusa6nop2YlJKPjIqIh4WDgYB+fn18e3l4dnRycGxpZmNgXFlWU09MSERAOzU2Nzg5Oz0/QkVJTlNYXV5dW1hUTklDPTYxLCknJiUkJCQlJiYnKCgpKSkpKSkoKCgoKCgoKCgpKissLzI1ODs+QkVITVNZX2Ztc29oYVrYoqitsLSwqqSemZOPi4iFg4KAfnx7eXh3dnZ0cnFwbmxpZmNfXFlWU1BMSUZCPzs2MzQ2Nzk6PD5AQ0hNUlZXV1ZUUU9KRT85My0pJiQiISEhISIjJCUmJygoKCgnJiYlJSYmJiYmJycoLTI2OTw/QkVIS05SVlxiaW92cGliXM6lrLK2sqynoJuUj4qFgX99e3l3dnRycXBwb21rampoZmRgXVlWU09MSUZDPzw5NTExMjQ2Nzg6PD5BRUpNT1BQT01LSEVAOzYwKiUiIB8eHh4fISIjJCUnKCgoJycmJSQkJCQkJCUmJyowNjw/QkZJS05RVVhcYGZscnlya2RewaWsr7GuqaOdl5GLhoB7eHZ0cnBvbWtqaWloZmRlZGJgXlpXU1BMSUZDQDw5NjMvLi8wMTM0Njg6PD5CRUdISUpIRkRBPjs3MiwmIR4dHBsbHR4gIiMlJigpKSkoJyYlJCMjIyMjJCUnLTQ6QEVJTE9SVVhbXmFlaW91enNsZV+1o6apq6mkn5mUjYiBfHdyb21samhmZWNjYmFgX19fXVpYVFFNSkZDPzw5NjMwLCorLC0uLzEyNDY4Ozw+QEFDQ0JAPTo4NTItKCIdGxkZGRkbHSAiJScpKissKyopKCclJCMjIyQkJiowNz1DSk9SVllcX2JlaGtvc3l6c21mX6mdn6Kko5+blpCKhH54cm1oZ2VjYWBeXFxbWllbW1pYVVJPS0dDQDw5NjMwLCkmJSYnKCorLS8wMjM0NTc5Ozw8Ozk2NDEuKygkHxkXFhYWGBodICMnKiwuLy8vLiwrKScmJSQkJCUoLTM6QEdNU1hcX2JlaGtucXV4fXlybGVeoZaYm52dmpaRjIaAenRuaWNgXlxbWVdWVVRUVldWVVJPTEhFQT46NjMwLCkmIyAgISIkJSYoKSorLC0vMTI0NTU0MjAtKickIh8aFRMSExQWGR0hJSktMDIzMzIxLy0rKSgmJSUmJyowNj1ESlBXXWJmaWxvcnV4e356dG9pYlybj5KUlpaTkIyHg3x3cGtkX1pXVVRSUE9OUFNTU1JPTUpGQz87NzQwLSkmIyAcGRobHB0eICEiIyQlJigqKy0uLy0rKSYjIR4bGBYRDg8QERQYHCEmKi0xMzQ0MzIwLy0rKScmJiYoLDA3PkRLUllgZmtvcnV4e3t6eHZwa2ZfWZSIi42Qj42Kh4N+eXNtZ2FbVlBPTUtKTE9QUVFPTUtIRUE9OTUyLionIyAcGRYTExQVFhgZGhscHR4gISMlJicoJyQiHx0aFxQRDwwKCwwOEhUYHCAkJyosLS0sKyooJiQiISAgISMnLjU7QklQVl1ka3FzdHV1dHNyb2xnYVxWjYGEh4mJhoOAfXl0b2lkXVhRTEhJS0xOT09PTUtJRUM/OzczMCwoJCEdGhYTEAwMDQ4PERITFRYXGBkaHB4fISEgHhsZFhMQDQsIBgYHCAkMDxIWGh4gIyUmJiYkIyEfHRsaGRkaHiQrMjk/Rk1UWmFoa2xtbm5tbGtoZmJdV1KGiYyNjY2MioiFg4B9enh1cm9saWZjYFxZVVFNSUVBPTk1Mi4qJiIfGxcUEA0JBgUGBwkKCw0ODxAREhQVFxkaGhkXFBIPDAkHBAEAAAABAwUJDREUFxocHh8gHx4cGhgWFRMSEhQbISgvNj1FTVRaXmFkZmdnZ2ZlZGJfXFlUTg==";
+function preset(name) {
+  if (name === "custom") {   // the hand-sculpted default
+    const b = atob(DEFAULT_SAND);
+    for (let k = 0; k < N * N; k++) sand[k] = b.charCodeAt(k) / 255 * H;
+    return;
+  }
+  const seed = Math.random() * 50;
+  const piles = [];   // sand cones like the museum table: random spots, not too close to each other
+  for (let tries = 0; piles.length < 9 && tries < 400; tries++) {
+    const cx = -.78 + Math.random() * 1.56, cy = -.78 + Math.random() * 1.56;
+    if (piles.every(([px2, py2]) => Math.hypot(cx - px2, cy - py2) > .38)) piles.push([cx, cy, 7 + Math.random() * 6, .24 + Math.random() * .12]);
+  }
+  for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
+    const x = (i / (N - 1)) * 2 - 1, y = (j / (N - 1)) * 2 - 1;
+    const r = Math.hypot(x, y);
+    const edge = clamp((1 - Math.max(Math.abs(x), Math.abs(y))) * 6, 0, 1);
+    let z = 0;
+    if (name === "piles") {
+      z = 1.2 + .8 * (fbm(i * .05 + seed, j * .05) - .5);
+      for (const [cx, cy, hh, rr] of piles) {
+        const d = Math.hypot(x - cx, y - cy) / rr;
+        if (d < 1) z = Math.max(z, 1.2 + hh * (1 - d) * (1 - d) * (1 + 2 * d));   // smoothstep falloff: gentle top, steep flanks
+      }
+    } else if (name === "hills") {
+      z = 2 + 9 * Math.exp(-((x + .35) ** 2 + (y + .2) ** 2) / .09) + 7 * Math.exp(-((x - .4) ** 2 + (y - .35) ** 2) / .06)
+        + 4 * Math.exp(-((x - .1) ** 2 + (y + .6) ** 2) / .05) + 1.2 * (fbm(i * .045 + seed, j * .045) - .5);
+    } else if (name === "volcano") {
+      z = 1.5 + 12.5 * Math.exp(-(r * r) / .16) - 8 * Math.exp(-(r * r) / .012) + 1.0 * (fbm(i * .05 + seed, j * .05) - .5);
+    } else if (name === "valley") {
+      const river = .25 * Math.sin(y * 3.2 + seed);
+      z = 1.5 + 9 * (1 - Math.exp(-((x - river) ** 2) / .12)) * (0.65 + 0.35 * (y + 1) / 2) + 1.2 * (fbm(i * .045 + seed, j * .045) - .5);
+    } else {
+      z = 2.5 + .6 * (fbm(i * .1 + seed, j * .1) - .5);
+    }
+    sand[idx(i, j)] = clamp(z, 0, H) * edge;
+  }
+  prev.set(sand);
+}
+
+// ---------------------------------------------------------------- hands
+function applyBrush(gi, gj, mode) {
+  const r = st.brush, r2 = r * r, R = Math.ceil(r * 2);
+  const rate = 0.35;
+  for (let j = Math.max(1, Math.floor(gj - R)); j <= Math.min(N - 2, Math.ceil(gj + R)); j++)
+    for (let i = Math.max(1, Math.floor(gi - R)); i <= Math.min(N - 2, Math.ceil(gi + R)); i++) {
+      const d2 = (i - gi) ** 2 + (j - gj) ** 2, w = Math.exp(-d2 / r2);
+      if (w < .01) continue;
+      const k = idx(i, j);
+      if (mode === "add") sand[k] = Math.min(H, sand[k] + rate * w);
+      else if (mode === "dig") sand[k] = Math.max(0, sand[k] - rate * w);
+      else {
+        const avg = (sand[k - 1] + sand[k + 1] + sand[k - N] + sand[k + N]) * .25;
+        sand[k] += (avg - sand[k]) * .5 * w;
+      }
+    }
+}
+// Angle of repose (~34 deg): sand that is steeper than this slides to its neighbours. Mass is conserved.
+// Eight neighbours (diagonals use the longer distance) so a poured pile comes out round, not diamond-shaped.
+const TALUS = Math.tan(34 * Math.PI / 180) * S;
+const NB = [[-1, 1], [1, 1], [-N, 1], [N, 1], [-N - 1, Math.SQRT2], [-N + 1, Math.SQRT2], [N - 1, Math.SQRT2], [N + 1, Math.SQRT2]];
+function relax() {
+  for (let it = 0; it < 2; it++) {
+    delta.fill(0);
+    for (let j = 1; j < N - 1; j++) for (let i = 1; i < N - 1; i++) {
+      const k = idx(i, j), z = sand[k];
+      for (const [o, dist] of NB) {
+        const n = k + o, d = z - sand[n], lim = TALUS * dist;
+        if (d > lim) { const m = (d - lim) * .1; delta[k] -= m; delta[n] += m; }
+      }
+    }
+    for (let k = 0; k < N * N; k++) sand[k] += delta[k];
+  }
+}
+
+// ---------------------------------------------------------------- sensing (mirrors ofApp::update)
+function sense() {
+  // 1. raw depth: truth + Kinect-like noise and dropout holes
+  for (let k = 0; k < N * N; k++) {
+    let z = sand[k];
+    if (st.noise) {
+      z += (Math.random() + Math.random() + Math.random() - 1.5) * 0.55;
+      if (Math.random() < 0.004) z = 0;              // hole: no depth return
+    }
+    meas[k] = z;
+  }
+  // 2. grayImageSmall.blur(3): 3x3 box blur
+  for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
+    let s = 0, c = 0;
+    for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) {
+      const ii = i + di, jj = j + dj;
+      if (ii >= 0 && jj >= 0 && ii < N && jj < N) { s += meas[idx(ii, jj)]; c++; }
+    }
+    tmp[idx(i, j)] = st.filter ? s / c : meas[idx(i, j)];
+  }
+  // 3. prevPix = prevDepth * .9 + currentDepth * .1
+  for (let k = 0; k < N * N; k++) prev[k] = st.filter ? prev[k] * .9 + tmp[k] * .1 : tmp[k];
+  hgt.set(prev);
+  // 4. separable smoothing, (a + c + w*b) / (2 + w), along y then x
+  const w = st.smoothWeight;
+  for (let r = 0; r < (st.filter ? st.smoothRound : 0); r++) {
+    for (let j = 0; j < N; j++) for (let i = 1; i < N - 1; i++) { const k = idx(i, j); hgt[k] = (hgt[k - 1] + hgt[k + 1] + w * hgt[k]) / (2 + w); }
+    for (let j = 1; j < N - 1; j++) for (let i = 0; i < N; i++) { const k = idx(i, j); hgt[k] = (hgt[k - N] + hgt[k + N] + w * hgt[k]) / (2 + w); }
+  }
+  // 5. pin the border to zero, as the original does
+  for (let t = 0; t < N; t++) { hgt[idx(t, 0)] = hgt[idx(t, N - 1)] = hgt[idx(0, t)] = hgt[idx(N - 1, t)] = 0; }
+}
+
+// per-vertex normals (igl::per_vertex_normals on a regular grid ~ central differences)
+// and the downhill vector slope = g - (N.g) N with g = (0,0,-1)
+function buildMesh() {
+  for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
+    const k = idx(i, j);
+    const iL = Math.max(i - 1, 0), iR = Math.min(i + 1, N - 1), jD = Math.max(j - 1, 0), jU = Math.min(j + 1, N - 1);
+    const dx = (hgt[idx(iR, j)] - hgt[idx(iL, j)]) / ((iR - iL) * S);
+    const dy = (hgt[idx(i, jU)] - hgt[idx(i, jD)]) / ((jU - jD) * S);
+    let nx = -dx, ny = -dy, nz = 1; const l = Math.hypot(nx, ny, nz); nx /= l; ny /= l; nz /= l;
+    nor[3 * k] = nx; nor[3 * k + 1] = ny; nor[3 * k + 2] = nz;
+    dir[3 * k] = nz * nx; dir[3 * k + 1] = nz * ny; dir[3 * k + 2] = nz * nz - 1;
+    pos[3 * k + 2] = hgt[k];
+    hTex[k] = clamp(Math.round(hgt[k] / H * 255), 0, 255);
+  }
+}
+
+
+// ---------------------------------------------------------------- WebGL
+const glc = document.getElementById("gl");
+const ov = document.getElementById("overlay"), octx = ov.getContext("2d");
+const gl = glc.getContext("webgl", { antialias: true }) || glc.getContext("experimental-webgl");
+if (!gl) { document.getElementById("box").innerHTML = '<p style="padding:24px">This demo needs WebGL. Try a recent Chrome, Firefox or Safari.</p>'; return; }
+
+const VS = `
+attribute vec3 position; attribute vec3 normal;
+uniform mat4 uMVP; uniform float u_width;
+varying vec3 vPos; varying vec3 vNor; varying vec2 vUV;
+void main() {
+  gl_Position = uMVP * vec4(position, 1.);
+  vPos = position; vNor = normal;
+  vUV = (position.xy + .5 * u_width) / u_width;
+}`;
+
+// Ported from TMG-SandScape/sandScape/bin/data/shader.frag (rain/contour mode and season mode).
+const FS = `
+precision highp float;
+uniform sampler2D waterTexture; uniform sampler2D particleTexture;
+uniform float u_mode; uniform float u_width; uniform float u_length; uniform float u_height;
+uniform float u_snowLine; uniform float u_cloud; uniform float u_softWater;
+uniform float u_from; uniform float u_to; uniform float u_prog;
+varying vec3 vPos; varying vec3 vNor; varying vec2 vUV;
+
+const vec3 white = vec3(1.,1.,1.);
+const vec3 yellow = vec3(1.,0.99,0.56);
+const vec3 pink = vec3(0.93,0.418,0.55);
+const vec3 w_blue0 = vec3(0.4,0.5,0.7);   const vec3 w_blue2 = vec3(0.8,1,1);
+const vec3 w_green0 = vec3(0.7,0.6,0.5);  const vec3 w_green1 = vec3(0.7,0.9,0.8);
+const vec3 s_blue2 = vec3(0.6,0.9,0.95);
+const vec3 s_green0 = vec3(0.3,0.4,0.1);  const vec3 s_green1 = vec3(0.6,0.9,0.6); const vec3 s_green2 = vec3(0.9,1,0.8);
+const vec3 f_yellow0 = 0.6 * vec3(0.7,0.5,0.1); const vec3 f_yellow1 = vec3(0.8,0.4,0.1); const vec3 f_yellow2 = vec3(.9,0.6,0.2);
+const vec3 f_green0 = vec3(0.5,0.4,0.2);  const vec3 f_green1 = vec3(.5,0.9,0.3);
+
+// Ken Perlin's compact noise, unchanged from the original shader
+float noise(vec3 v) {
+  vec4 r[2];
+  const mat4 E = mat4(0.,0.,0.,0., 0.,.5,.5,0., .5,0.,.5,0., .5,.5,0.,0.);
+  for (int j = 0 ; j < 2 ; j++)
+  for (int i = 0 ; i < 4 ; i++) {
+    vec3 p = .60*v + E[i].xyz, C = floor(p), P = p - C-.5, A = abs(P), D;
+    C += mod(C.x+C.y+C.z+float(j),2.) * step(max(A.yzx,A.zxy),A)*sign(P);
+    D  = 314.1*sin(59.2*float(i+4*j) + 65.3*C + 58.9*C.yzx + 79.3*C.zxy);
+    r[j][i] = dot(P=p-C-.5,fract(D)-.5) * pow(max(0.,1.-2.*dot(P,P)),4.);
+  }
+  return 6.50 * (r[0].x+r[0].y+r[0].z+r[0].w+r[1].x+r[1].y+r[1].z+r[1].w);
+}
+
+vec3 elevation(float z) {
+  float h = z / u_height;
+  vec3 color = vec3(253., 128., 46.)/255.;
+  color = mix(vec3(253.,198.,104.)/255., color, clamp(pow(h + 0.1, 10.), 0.,1.));
+  color = mix(vec3(211.,231.,125.)/255., color, clamp(pow(h + 0.2, 10.), 0.,1.));
+  color = mix(vec3(168.,233.,106.)/255., color, clamp(pow(h + 0.4, 10.), 0.,1.));
+  color = mix(vec3(171.,233.,235.)/255., color, clamp(pow(h + 0.5, 10.), 0.,1.));
+  color = mix(vec3(55.,231.,238.)/255.,  color, clamp(pow(h + 0.6, 10.), 0.,1.));
+  color = mix(vec3(75.,220.,253.)/255.,  color, clamp(pow(h + 0.7, 10.), 0.,1.));
+  color = mix(vec3(75.,194.,253.)/255.,  color, clamp(pow(h + 0.85,10.), 0.,1.));
+  color = mix(vec3(6.,182.,243.)/255.,   color, clamp(pow(h + 0.8, 10.), 0.,1.));
+  return color;
+}
+
+vec3 springColor() {
+  vec3 s_low = mix(s_green0, s_green1, noise(0.01 * vPos) + 0.5 * (vPos.x + vPos.z)/u_length);
+  vec3 s_high = mix(s_blue2, s_green2, 0.5 + 2. * (vPos.y + 4.)/u_length);
+  s_low = mix(s_low, pink, min(1., noise(10. + 0.05 * vPos.xyz)));
+  return mix(s_low, s_high, -0.2 + vPos.z/u_height);
+}
+vec3 autumnColor() {
+  vec3 f_low = mix(f_yellow0, f_green0, 0.5 + 0.5 * (vPos.y + vPos.x + noise(0.01 * vPos))/u_length);
+  vec3 f_high = mix(f_green1, f_yellow2, 0.5 + 2. * (vPos.y + 4.)/u_length);
+  f_high = mix(f_high, f_yellow1, 0.8 + 0.9 * noise(0.1 * vPos.xyz));
+  vec3 c = mix(f_low, f_high, -0.2 + vPos.z/u_height);
+  // brighter and more saturated than the original palette, which was tuned for a projector on sand
+  c = mix(vec3(dot(c, vec3(.3, .59, .11))), c, 1.7) * 1.4;
+  return clamp(c, 0., 1.);
+}
+vec3 winterColor() {
+  vec3 w_low = mix(w_green0, w_blue0, 0.5 + 0.5 * (vPos.x + vPos.y + 50. * noise(0.01 * vPos))/u_length);
+  vec3 w_high = mix(w_green1, w_blue2, min(1., 0.5 + 2. * vPos.z/u_length));
+  w_high = mix(w_high, yellow, noise(20. + 0.05 * vPos.xyz));
+  float ratio = smoothstep(0., 1., 0.2 * noise(0.1 * vPos.xyz) + (vPos.z - 8.)/u_height);
+  w_high = mix(w_high, white, ratio);
+  return mix(w_low, w_high, 0.1 + vPos.z/u_height);
+}
+vec3 seasonColor(float s) { return s < .5 ? springColor() : (s < 1.5 ? autumnColor() : winterColor()); }
+
+void main() {
+  vec3 N = normalize(vNor);
+  vec3 outc;
+  bool inside = vPos.x > -u_width/2. + 1. && vPos.x < u_width/2. - 2. && vPos.y > -u_length/2. + 1. && vPos.y < u_length/2. - 2.;
+
+  if (u_mode < .5) {                      // museum version / water trails: contours, rain and drainage
+    vec3 color = elevation(vPos.z);
+    vec4 water_tex = texture2D(waterTexture, vUV);
+    float slope = 1. - abs(dot(N, vec3(0.,0.,1.)));
+    float strokeWeight = .3 * slope;
+    float unit = u_height / 15.;
+    vec3 avg = vec3((color.r + color.g + color.b)/3.);
+    float normCloud = u_cloud/5.;
+    color = avg + max(normCloud, 0.3) * (color - avg);
+    color *= max(normCloud, 0.3);
+    outc = color;
+    if (inside) {
+      for (int i = 1; i < 15; i++) {
+        float fi = float(i);
+        if (vPos.z > fi * unit - strokeWeight && vPos.z < fi * unit + strokeWeight) outc = 1.5 * white * clamp(normCloud, 0.3, 1.);
+      }
+      float wmax = max(water_tex.r, max(water_tex.g, water_tex.b));
+      bool wet = u_softWater > .5 ? wmax > 0.45 : length(water_tex.rgb) > 0.8;
+      if (wet && normCloud < 0.5) outc = mix(u_softWater > .5 ? water_tex.rgb / wmax : water_tex.rgb, color, 2. * normCloud);
+    }
+
+  } else if (u_mode > 2.5) {              // bare mesh: one flat color so the triangles and shading read
+    outc = vec3(.58, .63, .68);
+
+  } else if (u_mode > 1.5) {              // slope vectors / wind field: plain height colors under the arrows
+    outc = elevation(vPos.z);
+
+  } else {                                // seasons
+    // The new season sweeps across the table along a noisy front (the original's commented-out "auto transition").
+    float front = .5 + .35 * (vPos.x + vPos.y) / u_width + .25 * noise(.06 * vPos);
+    float local = smoothstep(front - .08, front + .08, u_prog * 1.5 - .25);
+    vec3 color = mix(seasonColor(u_from), seasonColor(u_to), local);
+    vec3 w_color = winterColor();
+
+    // meltwater trails (waterTexture): faded trails are dark, so their brightness is their opacity
+    vec4 wt = texture2D(waterTexture, vUV);
+    float wm = max(wt.r, max(wt.g, wt.b));
+    color = mix(color, wt.rgb / max(wm, .001), smoothstep(.03, .6, wm) * .85);
+
+    // snow cap: everything above u_snowLine, with a ragged noisy edge and an icy band where it melts
+    float line = u_snowLine + .8 * noise(.9 * vPos) + .25 * noise(6. * vPos);
+    float cap = u_snowLine < u_height ? smoothstep(line - .12, line + .12, vPos.z) : 0.;
+    vec3 snow = min(mix(w_color, white, .55) * 1.15, white);
+    vec3 ice = vec3(.72, .88, 1.);
+    snow = mix(ice, snow, smoothstep(line, line + .9, vPos.z));
+    color = mix(color, snow, cap);
+
+    // petals and leaves (particleTexture)
+    vec4 pt = texture2D(particleTexture, vUV);
+    color = mix(color, pt.rgb, pt.a);         // drawn with real alpha, so dark reds stay dark
+
+    color += clamp(noise(600.0 * vPos), .0, .05);   // grain
+    outc = color;
+  }
+  // Real sand is lit by the room; on a screen in 3D we add a little shading.
+  outc *= .6 + .4 * max(dot(N, normalize(vec3(-.4, -.6, .75))), 0.);
+  gl_FragColor = vec4(outc, 1.);
+}`;
+
+function shader(type, src) {
+  const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s);
+  if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s));
+  return s;
+}
+function program(vs, fs) {
+  const p = gl.createProgram();
+  gl.attachShader(p, shader(gl.VERTEX_SHADER, vs)); gl.attachShader(p, shader(gl.FRAGMENT_SHADER, fs));
+  gl.linkProgram(p);
+  if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p));
+  return p;
+}
+const prog = program(VS, FS);
+// arrows: GL lines drawn a few times with sub-pixel offsets so they read about 2 px thick, depth-tested against the sand
+const LVS = `attribute vec3 position; uniform mat4 uMVP; uniform vec2 uOff;
+void main(){ gl_Position = uMVP * vec4(position, 1.); gl_Position.xy += uOff * gl_Position.w; }`;
+const LFS = `precision mediump float; uniform vec4 uColor; void main(){ gl_FragColor = uColor; }`;
+const lprog = program(LVS, LFS);
+const LU = { mvp: gl.getUniformLocation(lprog, "uMVP"), off: gl.getUniformLocation(lprog, "uOff"), color: gl.getUniformLocation(lprog, "uColor") };
+const LA = gl.getAttribLocation(lprog, "position");
+const ASTEP = 6, arrowData = new Float32Array(Math.ceil(N / ASTEP) ** 2 * 18);
+const bufArrows = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, bufArrows); gl.bufferData(gl.ARRAY_BUFFER, arrowData, gl.DYNAMIC_DRAW);
+const U = {}; for (const n of ["uMVP","u_width","u_length","u_height","u_mode","u_snowLine","u_cloud","u_softWater","u_from","u_to","u_prog","waterTexture","particleTexture"]) U[n] = gl.getUniformLocation(prog, n);
+const A = { position: gl.getAttribLocation(prog, "position"), normal: gl.getAttribLocation(prog, "normal") };
+
+for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) { const k = idx(i, j); pos[3 * k] = -W / 2 + i * S; pos[3 * k + 1] = -W / 2 + j * S; }
+const indices = new Uint16Array((N - 1) * (N - 1) * 6);
+{ let t = 0; for (let j = 0; j < N - 1; j++) for (let i = 0; i < N - 1; i++) {
+  const a = idx(i, j), b = idx(i + 1, j), c = idx(i, j + 1), d = idx(i + 1, j + 1);
+  indices.set([a, b, d, a, d, c], t); t += 6; } }
+const bufPos = gl.createBuffer(), bufNor = gl.createBuffer(), bufIdx = gl.createBuffer();
+gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, bufIdx); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, gl.STATIC_DRAW);
+for (const [b, a] of [[bufPos, pos], [bufNor, nor]]) { gl.bindBuffer(gl.ARRAY_BUFFER, b); gl.bufferData(gl.ARRAY_BUFFER, a, gl.DYNAMIC_DRAW); }
+
+function makeTex() {
+  const t = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, t);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  return t;
+}
+const texWater = makeTex(), texPart = makeTex();
+// offscreen 2D canvases play the role of the original's FBOs
+const wc = document.createElement("canvas"); wc.width = wc.height = WR; const wctx = wc.getContext("2d");
+const pc = document.createElement("canvas"); pc.width = pc.height = PRES; const pctx = pc.getContext("2d");
+wctx.fillStyle = "#000"; wctx.fillRect(0, 0, WR, WR);
+// ---------------------------------------------------------------- matrices (column-major, by hand)
+function mul(a, b) { const o = new Float32Array(16);
+  for (let c = 0; c < 4; c++) for (let r = 0; r < 4; r++) { let s = 0; for (let k = 0; k < 4; k++) s += a[k * 4 + r] * b[c * 4 + k]; o[c * 4 + r] = s; } return o; }
+function perspective(fovy, asp, n, f) { const t = 1 / Math.tan(fovy / 2), o = new Float32Array(16);
+  o[0] = t / asp; o[5] = t; o[10] = (f + n) / (n - f); o[11] = -1; o[14] = 2 * f * n / (n - f); return o; }
+function ortho(l, r, b, t, n, f) { const o = new Float32Array(16);
+  o[0] = 2 / (r - l); o[5] = 2 / (t - b); o[10] = -2 / (f - n); o[12] = -(r + l) / (r - l); o[13] = -(t + b) / (t - b); o[14] = -(f + n) / (f - n); o[15] = 1; return o; }
+function lookAt(e, c, u) {
+  let zx = e[0] - c[0], zy = e[1] - c[1], zz = e[2] - c[2]; let l = Math.hypot(zx, zy, zz); zx /= l; zy /= l; zz /= l;
+  let xx = u[1] * zz - u[2] * zy, xy = u[2] * zx - u[0] * zz, xz = u[0] * zy - u[1] * zx; l = Math.hypot(xx, xy, xz); xx /= l; xy /= l; xz /= l;
+  const yx = zy * xz - zz * xy, yy = zz * xx - zx * xz, yz = zx * xy - zy * xx;
+  return new Float32Array([xx, yx, zx, 0, xy, yy, zy, 0, xz, yz, zz, 0,
+    -(xx * e[0] + xy * e[1] + xz * e[2]), -(yx * e[0] + yy * e[1] + yz * e[2]), -(zx * e[0] + zy * e[1] + zz * e[2]), 1]);
+}
+function invert(m) {
+  const o = new Float32Array(16), a = m;
+  o[0] = a[5]*a[10]*a[15]-a[5]*a[11]*a[14]-a[9]*a[6]*a[15]+a[9]*a[7]*a[14]+a[13]*a[6]*a[11]-a[13]*a[7]*a[10];
+  o[4] = -a[4]*a[10]*a[15]+a[4]*a[11]*a[14]+a[8]*a[6]*a[15]-a[8]*a[7]*a[14]-a[12]*a[6]*a[11]+a[12]*a[7]*a[10];
+  o[8] = a[4]*a[9]*a[15]-a[4]*a[11]*a[13]-a[8]*a[5]*a[15]+a[8]*a[7]*a[13]+a[12]*a[5]*a[11]-a[12]*a[7]*a[9];
+  o[12] = -a[4]*a[9]*a[14]+a[4]*a[10]*a[13]+a[8]*a[5]*a[14]-a[8]*a[6]*a[13]-a[12]*a[5]*a[10]+a[12]*a[6]*a[9];
+  o[1] = -a[1]*a[10]*a[15]+a[1]*a[11]*a[14]+a[9]*a[2]*a[15]-a[9]*a[3]*a[14]-a[13]*a[2]*a[11]+a[13]*a[3]*a[10];
+  o[5] = a[0]*a[10]*a[15]-a[0]*a[11]*a[14]-a[8]*a[2]*a[15]+a[8]*a[3]*a[14]+a[12]*a[2]*a[11]-a[12]*a[3]*a[10];
+  o[9] = -a[0]*a[9]*a[15]+a[0]*a[11]*a[13]+a[8]*a[1]*a[15]-a[8]*a[3]*a[13]-a[12]*a[1]*a[11]+a[12]*a[3]*a[9];
+  o[13] = a[0]*a[9]*a[14]-a[0]*a[10]*a[13]-a[8]*a[1]*a[14]+a[8]*a[2]*a[13]+a[12]*a[1]*a[10]-a[12]*a[2]*a[9];
+  o[2] = a[1]*a[6]*a[15]-a[1]*a[7]*a[14]-a[5]*a[2]*a[15]+a[5]*a[3]*a[14]+a[13]*a[2]*a[7]-a[13]*a[3]*a[6];
+  o[6] = -a[0]*a[6]*a[15]+a[0]*a[7]*a[14]+a[4]*a[2]*a[15]-a[4]*a[3]*a[14]-a[12]*a[2]*a[7]+a[12]*a[3]*a[6];
+  o[10] = a[0]*a[5]*a[15]-a[0]*a[7]*a[13]-a[4]*a[1]*a[15]+a[4]*a[3]*a[13]+a[12]*a[1]*a[7]-a[12]*a[3]*a[5];
+  o[14] = -a[0]*a[5]*a[14]+a[0]*a[6]*a[13]+a[4]*a[1]*a[14]-a[4]*a[2]*a[13]-a[12]*a[1]*a[6]+a[12]*a[2]*a[5];
+  o[3] = -a[1]*a[6]*a[11]+a[1]*a[7]*a[10]+a[5]*a[2]*a[11]-a[5]*a[3]*a[10]-a[9]*a[2]*a[7]+a[9]*a[3]*a[6];
+  o[7] = a[0]*a[6]*a[11]-a[0]*a[7]*a[10]-a[4]*a[2]*a[11]+a[4]*a[3]*a[10]+a[8]*a[2]*a[7]-a[8]*a[3]*a[6];
+  o[11] = -a[0]*a[5]*a[11]+a[0]*a[7]*a[9]+a[4]*a[1]*a[11]-a[4]*a[3]*a[9]-a[8]*a[1]*a[7]+a[8]*a[3]*a[5];
+  o[15] = a[0]*a[5]*a[10]-a[0]*a[6]*a[9]-a[4]*a[1]*a[10]+a[4]*a[2]*a[9]+a[8]*a[1]*a[6]-a[8]*a[2]*a[5];
+  let det = a[0]*o[0]+a[1]*o[4]+a[2]*o[8]+a[3]*o[12]; det = 1 / det;
+  for (let i = 0; i < 16; i++) o[i] *= det; return o;
+}
+function xform(m, x, y, z, w) { return [m[0]*x+m[4]*y+m[8]*z+m[12]*w, m[1]*x+m[5]*y+m[9]*z+m[13]*w, m[2]*x+m[6]*y+m[10]*z+m[14]*w, m[3]*x+m[7]*y+m[11]*z+m[15]*w]; }
+let MVP = new Float32Array(16), invMVP = new Float32Array(16), EYE = [0, 0, 100];
+function camera() {
+  const asp = glc.width / glc.height;
+  const c = Math.cos(st.pitch), tgt = [0, 0, 2], d = st.dist / Math.min(1, asp);
+  const eye = [tgt[0] + d * c * Math.cos(st.yaw), tgt[1] + d * c * Math.sin(st.yaw), tgt[2] + d * Math.sin(st.pitch)];
+  MVP = mul(perspective(40 * Math.PI / 180, asp, 1, 800), lookAt(eye, tgt, [0, 0, 1]));
+  EYE = eye;
+  invMVP = invert(MVP);
+}
+// Picking: unproject the pixel to a ray, then march along it until it goes under the sand.
+function sampleH(x, y) {
+  const fi = clamp((x + W / 2) / S, 0, N - 1.001), fj = clamp((y + W / 2) / S, 0, N - 1.001);
+  const i = Math.floor(fi), j = Math.floor(fj), u = fi - i, v = fj - j;
+  return hgt[idx(i, j)] * (1 - u) * (1 - v) + hgt[idx(i + 1, j)] * u * (1 - v) + hgt[idx(i, j + 1)] * (1 - u) * v + hgt[idx(i + 1, j + 1)] * u * v;
+}
+function pick(px, py) {
+  const r = glc.getBoundingClientRect();
+  const nx = (px - r.left) / r.width * 2 - 1, ny = 1 - (py - r.top) / r.height * 2;
+  const a = xform(invMVP, nx, ny, -1, 1), b = xform(invMVP, nx, ny, 1, 1);
+  const p0 = [a[0] / a[3], a[1] / a[3], a[2] / a[3]], p1 = [b[0] / b[3], b[1] / b[3], b[2] / b[3]];
+  const steps = 600;
+  for (let s = 0; s <= steps; s++) {
+    const t = s / steps, x = p0[0] + (p1[0] - p0[0]) * t, y = p0[1] + (p1[1] - p0[1]) * t, z = p0[2] + (p1[2] - p0[2]) * t;
+    if (Math.abs(x) <= W / 2 && Math.abs(y) <= W / 2 && z <= sampleH(x, y) + .01) return { i: (x + W / 2) / S, j: (y + W / 2) / S };
+  }
+  return null;
+}
+
+// ---------------------------------------------------------------- water, style 1: the original drainage network
+// waterColor from ofApp.h: slow -> fast
+const waterColor = [[51,110,255],[51,149,255],[51,174,255],[51,189,255],[51,209,255],[17,230,235],[17,235,192],[17,235,138],[235,206,17],[235,152,17],[235,82,17]];
+// Port of ofApp::findPath + the fbo_grad drawing loop. Nodes sit every 2 world units (gridSize 1, waterVectorDis 2 on the
+// 80-unit mesh), so 40 x 40. Each node takes one of 8 neighbours from its downhill direction (dot > 0.5 against
+// up/down/left/right), links only if both gradients agree, and the link always points from high to low. Chains are then
+// drawn from their roots as dotted segments coloured by the height drop, with beads moving along every third segment.
+const NG = 40, NSP = 2;                               // nodes per side, world units between nodes
+// Colour index = height drop * 5, as in the original. STEEP stays 1; raise it to exaggerate gentle terrain.
+const STEEP = 1;
+let NET_RES = 800, PX = 10;                           // original fbo_grad: meshX * 10 px; we match the on-screen size instead
+const nc = document.createElement("canvas"); nc.width = nc.height = NET_RES; const nctx = nc.getContext("2d");
+const netCache = document.createElement("canvas"); netCache.width = netCache.height = NET_RES; const ncache = netCache.getContext("2d");
+function sizeNetwork() {                              // 1 texel per screen pixel so the thin dotted lines survive
+  const want = clamp(Math.round(Math.min(glc.width, glc.height) / 2) * 2, 400, 2048);
+  if (want === NET_RES) return false;
+  NET_RES = want; PX = NET_RES / W; nc.width = nc.height = netCache.width = netCache.height = NET_RES; return true;
+}
+const gX = new Float32Array(NG * NG), gY = new Float32Array(NG * NG), gZ = new Float32Array(NG * NG);
+const parent = new Int32Array(NG * NG), child = new Int32Array(NG * NG), visited = new Uint8Array(NG * NG);
+const randOffset = Uint8Array.from({ length: NG * NG }, () => Math.floor(Math.random() * 8));
+let chains = [];                                      // [{ root, segs: [{x1,y1,x2,y2,ci}] }]
+const ofNoise = x => vnoise(x, 7.31);                 // stand-in for openFrameworks ofNoise (0..1)
+function nodeXY(r, c) { return [-W / 2 + c * NSP + 1, -W / 2 + r * NSP + 1]; }
+function findPath(r, c) {                             // iterative version of the recursive original
+  for (let guard = 0; guard < NG * NG; guard++) {
+    const n = r * NG + c;
+    if (visited[n]) return;
+    visited[n] = 1;
+    let rr = r, cc = c;
+    if (-gY[n] > .5) rr -= 1; else if (gY[n] > .5) rr += 1;   // gradient . up(0,-1) / down(0,1)
+    if (gX[n] > .5) cc += 1; else if (-gX[n] > .5) cc -= 1;   // gradient . right(1,0) / left(-1,0)
+    if (rr < 0 || cc < 0 || rr >= NG || cc >= NG || (rr === r && cc === c)) return;
+    const m = rr * NG + cc;
+    if (gX[n] * gX[m] + gY[n] * gY[m] <= 0) return;
+    if (gZ[n] > gZ[m]) { child[n] = m; parent[m] = n; }        // from high to low
+    else if (gZ[n] < gZ[m]) { parent[n] = m; child[m] = n; }   // from low to high: link the other way
+    else return;
+    r = rr; c = cc;
+  }
+}
+function buildNetwork() {
+  for (let r = 0; r < NG; r++) for (let c = 0; c < NG; c++) {
+    const n = r * NG + c, [x, y] = nodeXY(r, c);
+    const k = idx(clamp(Math.round((x + W / 2) / S), 0, N - 1), clamp(Math.round((y + W / 2) / S), 0, N - 1));
+    let sx = dir[3 * k], sy = dir[3 * k + 1]; const l = Math.hypot(sx, sy);
+    if (l > 0) { sx /= l; sy /= l; } else { sx = ofNoise(10 * r); sy = ofNoise(10 * c); }
+    gX[n] = sx; gY[n] = sy; gZ[n] = sampleH(x, y);
+  }
+  visited.fill(0); parent.fill(-1); child.fill(-1);
+  for (let r = 0; r < NG; r++) for (let c = 0; c < NG; c++) findPath(r, c);
+  chains = [];
+  for (let n = 0; n < NG * NG; n++) {
+    if (parent[n] !== -1 || child[n] === -1) continue;   // roots only
+    const segs = []; let a = n;
+    for (let guard = 0; child[a] !== -1 && guard < NG * NG; guard++) {
+      const b = child[a];
+      const [x1, y1] = nodeXY(Math.floor(a / NG), a % NG), [x2, y2] = nodeXY(Math.floor(b / NG), b % NG);
+      const stiff = gZ[a] - gZ[b];
+      segs.push({ x1: (x1 + W / 2) * 10, y1: (y1 + W / 2) * 10, x2: (x2 + W / 2) * 10, y2: (y2 + W / 2) * 10, ci: clamp(Math.floor(stiff * 5 * STEEP), 0, 10) });
+      a = b;
+    }
+    chains.push({ root: n, segs });
+  }
+  // static part: each segment is lineWidth (10) circles with a little noise wobble, in original fbo pixels (10 px per unit)
+  ncache.setTransform(1, 0, 0, 1, 0, 0); ncache.clearRect(0, 0, NET_RES, NET_RES);
+  ncache.setTransform(PX / 10, 0, 0, PX / 10, 0, 0);
+  const paths = waterColor.map(() => new Path2D());
+  const circleNum = 10, dn = 2 * (circleNum - 1);
+  for (const ch of chains) for (const g of ch.segs) {
+    const dx = g.x2 - g.x1, dy = g.y2 - g.y1, d = Math.hypot(dx, dy), rad = d / (dn - 1), P = paths[g.ci];
+    for (let k = 0; k < circleNum; k++) {
+      const x = g.x1 + 2 * k * dx / dn, y = g.y1 + 2 * k * dy / dn;
+      const cx = x + 1.8 * (-1 + 3 * ofNoise(y / 30)), cy = y + 3 * (-1 + 3 * ofNoise(x / 30));
+      P.moveTo(cx + rad, cy); P.arc(cx, cy, rad, 0, Math.PI * 2);
+    }
+  }
+  paths.forEach((P, i) => { const c = waterColor[i]; ncache.fillStyle = `rgb(${c[0]},${c[1]},${c[2]})`; ncache.fill(P); });
+}
+function drawNetwork(t) {
+  nctx.setTransform(1, 0, 0, 1, 0, 0);
+  nctx.fillStyle = "#000"; nctx.fillRect(0, 0, NET_RES, NET_RES);
+  nctx.drawImage(netCache, 0, 0);
+  nctx.setTransform(PX / 10, 0, 0, PX / 10, 0, 0);
+  const dot = 2.5;
+  for (const ch of chains) {
+    ch.segs.forEach((g, step) => {
+      const time = clamp(.5 * g.ci, 1, 3) * t, ratio = time - Math.floor(time);
+      if ((step + randOffset[ch.root]) % 3 !== Math.floor(time) % 3) return;
+      const c = waterColor[g.ci]; nctx.fillStyle = `rgb(${c[0]},${c[1]},${c[2]})`;
+      const dx = g.x2 - g.x1, dy = g.y2 - g.y1;
+      for (const [o, rr, w] of [[0, dot, 1.8], [-.15, dot - .5, 1.5], [.15, dot - .5, 1.5]]) {
+        const x = g.x1 + (ratio + o) * dx, y = g.y1 + (ratio + o) * dy;
+        nctx.beginPath(); nctx.arc(x + w * (-1 + 3 * ofNoise(y / 30)), y + w * (-1 + 3 * ofNoise(x / 30)), rr, 0, Math.PI * 2); nctx.fill();
+      }
+    });
+  }
+}
+
+
+// ---------------------------------------------------------------- water drops: rain trails
+// Each drop rolls down the slope of the filtered height field and paints a fading trail into the water texture.
+const MAXD = 5000;
+const dx = new Float32Array(MAXD), dy = new Float32Array(MAXD), dvx = new Float32Array(MAXD), dvy = new Float32Array(MAXD), dlife = new Float32Array(MAXD);
+let dcount = 0;
+function gradAt(x, y) {                       // height gradient (height units per world unit) at grid position x, y
+  const i = clamp(Math.round(x), 1, N - 2), j = clamp(Math.round(y), 1, N - 2), k = idx(i, j);
+  return [(hgt[k + 1] - hgt[k - 1]) / (2 * S), (hgt[k + N] - hgt[k - N]) / (2 * S), hgt[k]];
+}
+function spawnRain(k) { dx[k] = 2 + Math.random() * (N - 5); dy[k] = 2 + Math.random() * (N - 5); dvx[k] = dvy[k] = 0; dlife[k] = 160 + Math.random() * 260; return true; }
+function spawnMelt(k) {                        // a drop starts at the melting edge of the snow cap
+  const line = snowLine();
+  for (let t = 0; t < 40; t++) {
+    const x = 2 + Math.random() * (N - 5), y = 2 + Math.random() * (N - 5), z = hgt[idx(x | 0, y | 0)];
+    if (z > line - .3 && z < line + 1.2) { dx[k] = x; dy[k] = y; dvx[k] = dvy[k] = 0; dlife[k] = 50 + Math.random() * 30; return true; }
+  }
+  return false;
+}
+function clearWater() { dcount = 0; wctx.globalAlpha = 1; wctx.fillStyle = "#000"; wctx.fillRect(0, 0, WR, WR); }
+function drops(nNew, spawn, size, fade, melt) {
+  for (let s = 0; s < nNew && dcount < MAXD; s++) if (spawn(dcount)) dcount++;
+  wctx.globalAlpha = 1; wctx.fillStyle = `rgba(0,0,0,${fade})`; wctx.fillRect(0, 0, WR, WR);
+  const sc = WR / (N - 1);
+  for (let k = 0; k < dcount; k++) {
+    if (dx[k] < 1 || dy[k] < 1 || dx[k] > N - 3 || dy[k] > N - 3 || dlife[k] <= 0) {
+      dcount--; dx[k] = dx[dcount]; dy[k] = dy[dcount]; dvx[k] = dvx[dcount]; dvy[k] = dvy[dcount]; dlife[k] = dlife[dcount]; k--; continue;
+    }
+    const [gx, gy] = gradAt(dx[k], dy[k]);
+    const dmp = melt ? .8 : .86, gf = melt ? .12 : .5, vmax = melt ? .3 : 1.2;   // meltwater trickles slowly
+    dvx[k] = dvx[k] * dmp - gx * gf; dvy[k] = dvy[k] * dmp - gy * gf;
+    const sp = Math.hypot(dvx[k], dvy[k]);
+    if (sp > vmax) { dvx[k] *= vmax / sp; dvy[k] *= vmax / sp; }
+    const ox = dx[k], oy = dy[k];
+    dx[k] += dvx[k]; dy[k] += dvy[k]; dlife[k] -= 1;
+    if (melt) {                                // the trail is brightest at the ice and fades out quickly as it grows
+      const a = Math.pow(clamp(dlife[k] / 80, 0, 1), 3);
+      wctx.globalAlpha = a; wctx.strokeStyle = "rgb(150,214,255)"; wctx.lineWidth = size; wctx.lineCap = "round";
+      wctx.beginPath(); wctx.moveTo(ox * sc, oy * sc); wctx.lineTo(dx[k] * sc, dy[k] * sc); wctx.stroke();
+      wctx.globalAlpha = 1;
+      continue;
+    }
+    const c = waterColor[clamp(Math.floor(sp * 9), 0, 10)]; wctx.fillStyle = `rgb(${c[0]},${c[1]},${c[2]})`;
+    wctx.fillRect(dx[k] * sc - size / 2, dy[k] * sc - size / 2, size, size);
+  }
+}
+
+// ---------------------------------------------------------------- petals (spring) and leaves (autumn)
+// Both move with the wind and are pulled downhill by gravity. Wind is strong on high ground and weak in sheltered
+// low ground, and friction is high where the ground is flat and low, so they drift, tumble down the slopes and
+// settle along the valley floors. Port of the original's Particle::move(slope + 0.1 * wind), with friction added.
+const MAXF = 2600;
+const PET = ["rgb(255,186,222)", "rgb(250,160,205)", "rgb(255,214,232)", "rgb(244,150,196)", "rgb(255,236,244)"];
+// Autumn leaves use the original's colours: the flower colour (240-255, 150-200, 220-230) put through the fall
+// shader's tint, vec3(r * 1.3, g, b * 0.5), which gives soft peach and apricot dots.
+const LEAF = [150, 160, 170, 180, 190, 200].map(g => `rgb(255,${g},${g < 175 ? 110 : 115})`);
+function makeSet() { return { n: 0, x: new Float32Array(MAXF), y: new Float32Array(MAXF), vx: new Float32Array(MAXF), vy: new Float32Array(MAXF),
+  age: new Float32Array(MAXF), life: new Float32Array(MAXF), r: new Float32Array(MAXF), c: new Uint8Array(MAXF), land: new Uint8Array(MAXF) }; }
+const petals = makeSet(), leaves = makeSet();
+function spawnFlying(P, test) {
+  for (let t = 0; t < 30; t++) {
+    const x = 3 + Math.random() * (N - 7), y = 3 + Math.random() * (N - 7), z = hgt[idx(x | 0, y | 0)];
+    if (!test(z)) continue;
+    const k = P.n++;
+    P.x[k] = x; P.y[k] = y; P.vx[k] = P.vy[k] = 0; P.age[k] = 0; P.life[k] = 26 + Math.random() * 16;
+    P.r[k] = 2.1 + Math.random() * 1.7; P.c[k] = Math.random() * 255 | 0; P.land[k] = 0;
+    return;
+  }
+}
+// One prevailing wind that slowly turns, with gusts that travel downwind, so you can see the whole field drift together.
+function windDir(t) { return .6 + .9 * Math.sin(.045 * t); }
+function wind(x, y, t) {
+  const base = windDir(t), ca = Math.cos(base), sa = Math.sin(base);
+  const a = base + .7 * (vnoise(x * .03 + t * .05, y * .03) - .5);
+  const along = x * ca + y * sa;                                     // gusts move along the wind
+  const g = .35 + 1.1 * vnoise(along * .07 - t * 1.2, (y * ca - x * sa) * .05);
+  return [Math.cos(a) * g, Math.sin(a) * g, g];
+}
+function hollow(x, y) {                        // how much lower this spot is than the ground around it (a valley)
+  const i = clamp(x | 0, 4, N - 5), j = clamp(y | 0, 4, N - 5), k = idx(i, j);
+  return (hgt[k - 4] + hgt[k + 4] + hgt[k - 4 * N] + hgt[k + 4 * N]) * .25 - hgt[k];
+}
+function stepFlying(P, dt, t, heavy) {
+  for (let k = 0; k < P.n; k++) {
+    P.age[k] += dt;
+    if (P.age[k] > P.life[k] || P.x[k] < 1 || P.y[k] < 1 || P.x[k] > N - 2 || P.y[k] > N - 2) {
+      const m = --P.n; P.x[k] = P.x[m]; P.y[k] = P.y[m]; P.vx[k] = P.vx[m]; P.vy[k] = P.vy[m];
+      P.age[k] = P.age[m]; P.life[k] = P.life[m]; P.r[k] = P.r[m]; P.c[k] = P.c[m]; P.land[k] = P.land[m]; k--; continue;
+    }
+    const [gx, gy] = gradAt(P.x[k], P.y[k]);
+    const [wx, wy, gust] = wind(P.x[k], P.y[k], t);
+    if (!P.land[k]) {
+      // Airborne and very light: the wind does most of the work, gravity bends the path downhill, air drag keeps it slow.
+      const wk = heavy ? .002 : .0026, gk = heavy ? .0024 : .0017;
+      P.vx[k] = P.vx[k] * .96 + wx * wk - gx * gk;
+      P.vy[k] = P.vy[k] * .96 + wy * wk - gy * gk;
+      // Settling: more likely in a hollow, where the wind is blocked, and in a lull.
+      const v = smooth(.05, .5, hollow(P.x[k], P.y[k]));
+      if (Math.random() < (.0004 + .02 * v) * (1.3 - gust * .6)) {
+        P.land[k] = 1;                         // rest a while, then fade, so fresh ones keep blowing in
+        P.life[k] = Math.min(P.life[k], P.age[k] + 9 + Math.random() * 8);
+      }
+    } else {
+      // Landed: it creeps down the slope, and a strong gust can lift it again unless it is tucked into a valley.
+      P.vx[k] = P.vx[k] * .8 - gx * .0009; P.vy[k] = P.vy[k] * .8 - gy * .0009;
+      if (gust > 1.15 && Math.random() < .004 * (1 - smooth(.05, .4, hollow(P.x[k], P.y[k])))) P.land[k] = 0;
+    }
+    const sp = Math.hypot(P.vx[k], P.vy[k]);
+    if (sp > .09) { P.vx[k] *= .09 / sp; P.vy[k] *= .09 / sp; }
+    P.x[k] += P.vx[k]; P.y[k] += P.vy[k];
+  }
+}
+function drawFlying(P, cols, alphaAll) {
+  if (alphaAll <= .01) return;
+  const sc = PRES / (N - 1);
+  for (let k = 0; k < P.n; k++) {
+    const a = Math.min(1, P.age[k] / 1.5, (P.life[k] - P.age[k]) / 3) * alphaAll;
+    if (a <= .02) continue;
+    pctx.globalAlpha = a; pctx.fillStyle = cols[P.c[k] % cols.length];
+    pctx.beginPath(); pctx.arc(P.x[k] * sc, P.y[k] * sc, P.r[k], 0, Math.PI * 2); pctx.fill();
+  }
+  pctx.globalAlpha = 1;
+}
+
+// ---------------------------------------------------------------- seasons
+const SEASON_NAMES = ["spring", "autumn", "winter"], SEASON_LEN = 18, TRANSITION = 4;
+// Snow is measured from the highest sand on the table, so there is a cap whatever the kids have built.
+// snowF = 1 covers the top half of the relief; snowF = 0 puts the line above the highest peak.
+function snowLine() { return st.snowF > .002 ? st.hmax + .6 - st.snowF * (.5 * st.hmax + .6) : 99; }
+function goSeason(s) {
+  if (s === st.to && st.prog >= 1) { st.seasonClock = 0; return; }
+  st.from = st.prog < .5 ? st.from : st.to; st.to = s; st.prog = 0; st.seasonClock = 0;
+  pressedSeason();
+}
+function seasons(dt, t) {
+  st.prog = Math.min(1, st.prog + dt / TRANSITION);
+  st.seasonClock += dt;
+  if (st.seasonClock > SEASON_LEN) goSeason((st.to + 1) % 3);
+  const s = st.to;
+  let hm = 0; for (let k = 0; k < N * N; k++) if (hgt[k] > hm) hm = hgt[k];
+  st.hmax += (hm - st.hmax) * Math.min(1, dt * 2);
+  if (s === 2) st.snowF += (1 - st.snowF) * dt * .3;                    // winter: snow builds down from the peaks
+  else if (s === 0) st.snowF = Math.max(0, st.snowF - (.045 + .04 * st.snowF) * dt); // spring: the cap melts back, slowly
+  else st.snowF = Math.max(0, st.snowF - .5 * dt);
+  // meltwater only in the first moment after winter turns to spring; gone before the green has swept across
+  const thaw = st.from === 2 && s === 0 ? 1 - st.seasonClock / 1.8 : 0;
+  if (thaw > 0 || dcount > 0) drops(thaw > 0 && st.snowF > .2 ? Math.round(3 + 12 * thaw) : 0, spawnMelt, 1.3, .1, true);
+  // petals (spring) and leaves (autumn) are spawned the same way: on the lower slopes, below any snow
+  const wSpring = s === 0 ? st.prog : (st.from === 0 ? 1 - st.prog : 0);
+  const wFall = s === 1 ? st.prog : (st.from === 1 ? 1 - st.prog : 0);
+  if (s === 0) for (let n = 0; n < 9 && petals.n < MAXF; n++) spawnFlying(petals, z => z > 1.8 && z < 9 && z < snowLine() - .5);
+  if (s === 1) for (let n = 0; n < 9 && leaves.n < MAXF; n++) spawnFlying(leaves, z => z > 1.8 && z < 9 && z < snowLine() - .5);
+  stepFlying(petals, dt, t, false); stepFlying(leaves, dt, t, true);
+  pctx.globalAlpha = 1; pctx.clearRect(0, 0, PRES, PRES);
+  drawFlying(petals, PET, wSpring); drawFlying(leaves, LEAF, wFall);
+  if (wSpring <= .01) petals.n = 0;
+  if (wFall <= .01) leaves.n = 0;
+}
+
+// ---------------------------------------------------------------- brush ring (overlay canvas)
+function overlay() {
+  const w = ov.width, h = ov.height;
+  octx.clearRect(0, 0, w, h);
+  const P = st.pointer;
+  if (P.inside && !P.orbit && P.hit) {
+    const r = glc.getBoundingClientRect(), dpr = ov.width / r.width;
+    octx.strokeStyle = P.dig ? "rgba(124,192,234,.95)" : "rgba(255,255,255,.7)";
+    octx.lineWidth = 1.5 * dpr; octx.setLineDash([4 * dpr, 4 * dpr]);
+    octx.beginPath(); octx.arc((P.x - r.left) * dpr, (P.y - r.top) * dpr, 24 * dpr, 0, Math.PI * 2); octx.stroke();
+    octx.setLineDash([]);
+  }
+}
+
+// ---------------------------------------------------------------- arrows: slope vectors and the wind field
+// One arrow every few grid points, lying on the sand. Direction = the vector's direction, length = its magnitude.
+function drawArrows(kind, t) {
+  let n = 0;
+  for (let j = ASTEP / 2; j < N - 1; j += ASTEP) for (let i = ASTEP / 2; i < N - 1; i += ASTEP) {
+    const k = idx(i, j), Nx = nor[3 * k], Ny = nor[3 * k + 1], Nz = nor[3 * k + 2];
+    let vx, vy, vz, scale, cap = 99;
+    if (kind === "slope") {                    // downhill = gravity minus its part along the normal: g - (N.g)N
+      vx = dir[3 * k]; vy = dir[3 * k + 1]; vz = dir[3 * k + 2]; scale = 6; cap = 2.6;   // capped so steep sides don't overlap
+    } else {                                   // the same wind the petals and leaves feel, laid onto the surface
+      const [wx, wy] = wind(i, j, t), d = wx * Nx + wy * Ny;
+      vx = wx - d * Nx; vy = wy - d * Ny; vz = -d * Nz; scale = 2.6;
+    }
+    const m = Math.hypot(vx, vy, vz), len = Math.min(m * scale, cap);
+    if (len < .2) continue;
+    const ux = vx / m, uy = vy / m, uz = vz / m;
+    const x0 = pos[3 * k], y0 = pos[3 * k + 1], z0 = pos[3 * k + 2] + .35;
+    const x1 = x0 + ux * len, y1 = y0 + uy * len, z1 = z0 + uz * len;
+    if (Math.abs(x1) > W / 2 - 1.5 || Math.abs(y1) > W / 2 - 1.5) continue;   // keep arrows on the table (its rim is pinned to zero)
+    let sx = uy * Nz - uz * Ny, sy = uz * Nx - ux * Nz, sz = ux * Ny - uy * Nx; const sl = Math.hypot(sx, sy, sz) || 1; sx /= sl; sy /= sl; sz /= sl;
+    const h = Math.min(1.1, .3 * len + .3), w = h * .55;
+    const bx = x1 - ux * h, by = y1 - uy * h, bz = z1 - uz * h;
+    arrowData.set([x0, y0, z0, x1, y1, z1,  x1, y1, z1, bx + sx * w, by + sy * w, bz + sz * w,  x1, y1, z1, bx - sx * w, by - sy * w, bz - sz * w], n);
+    n += 18;
+  }
+  gl.useProgram(lprog);
+  gl.uniformMatrix4fv(LU.mvp, false, MVP);
+  gl.uniform4f(LU.color, 1, 1, 1, .95);
+  gl.bindBuffer(gl.ARRAY_BUFFER, bufArrows); gl.bufferSubData(gl.ARRAY_BUFFER, 0, arrowData.subarray(0, n));
+  gl.enableVertexAttribArray(LA); gl.vertexAttribPointer(LA, 3, gl.FLOAT, false, 0, 0);
+  const px = 2 / glc.width, py = 2 / glc.height, o = .55 * Math.min(window.devicePixelRatio || 1, 2);
+  for (const [ox, oy] of [[-o, -o], [o, -o], [-o, o], [o, o]]) { gl.uniform2f(LU.off, ox * px, oy * py); gl.drawArrays(gl.LINES, 0, n / 3); }
+  gl.disableVertexAttribArray(LA);
+}
+
+// ---------------------------------------------------------------- render
+function resize() {
+  const r = glc.getBoundingClientRect(), dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const w = Math.max(1, Math.round(r.width * dpr)), h = Math.max(1, Math.round(r.height * dpr));
+  if (glc.width !== w || glc.height !== h) { glc.width = ov.width = w; glc.height = ov.height = h; }
+}
+function bindAttr(buf, loc, size) { if (loc < 0) return; gl.bindBuffer(gl.ARRAY_BUFFER, buf); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, size, gl.FLOAT, false, 0, 0); }
+function render(waterSrc) {
+  gl.viewport(0, 0, glc.width, glc.height);
+  gl.clearColor(0, 0, 0, 1); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+  gl.enable(gl.DEPTH_TEST);
+  gl.useProgram(prog);
+  gl.bindBuffer(gl.ARRAY_BUFFER, bufPos); gl.bufferSubData(gl.ARRAY_BUFFER, 0, pos);
+  gl.bindBuffer(gl.ARRAY_BUFFER, bufNor); gl.bufferSubData(gl.ARRAY_BUFFER, 0, nor);
+  bindAttr(bufPos, A.position, 3); bindAttr(bufNor, A.normal, 3);
+  gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, texWater); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, waterSrc);
+  gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, texPart);
+  if (st.mode === "seasons") gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, pc);
+  gl.uniform1i(U.waterTexture, 0); gl.uniform1i(U.particleTexture, 1);
+  gl.uniformMatrix4fv(U.uMVP, false, MVP);
+  gl.uniform1f(U.u_width, W); gl.uniform1f(U.u_length, W); gl.uniform1f(U.u_height, H);
+  gl.uniform1f(U.u_mode, st.mode === "seasons" ? 1 : st.mode === "mesh" ? 3 : (st.mode === "slope" || st.mode === "wind") ? 2 : 0);
+  gl.uniform1f(U.u_cloud, st.cloud); gl.uniform1f(U.u_softWater, st.mode === "museum" ? 1 : 0);
+  gl.uniform1f(U.u_snowLine, snowLine()); gl.uniform1f(U.u_from, st.from); gl.uniform1f(U.u_to, st.to); gl.uniform1f(U.u_prog, st.prog);
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, bufIdx);
+  if (st.mode === "mesh") { gl.enable(gl.POLYGON_OFFSET_FILL); gl.polygonOffset(1, 1); }
+  gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_SHORT, 0);
+  gl.disable(gl.POLYGON_OFFSET_FILL);
+}
+
+// Steps 1 and 2: the depth samples as dots, before there is any surface (every 2nd sample, so they read as dots)
+const PVS = `attribute vec3 position; uniform mat4 uMVP; uniform float uSize; uniform float uH; varying float vH;
+void main(){ gl_Position = uMVP * vec4(position, 1.); gl_PointSize = uSize; vH = position.z / uH; }`;
+const PFS = `precision mediump float; varying float vH;
+void main(){ vec2 c = gl_PointCoord - .5; if (dot(c, c) > .25) discard;
+  gl_FragColor = vec4(mix(vec3(.16, .42, .62), vec3(.86, .95, 1.), clamp(vH * 1.6, 0., 1.)), 1.); }`;
+const pprog = program(PVS, PFS);
+const PU = { mvp: gl.getUniformLocation(pprog, "uMVP"), size: gl.getUniformLocation(pprog, "uSize"), h: gl.getUniformLocation(pprog, "uH") };
+const PA = gl.getAttribLocation(pprog, "position");
+const PSTEP = 2, PN = N / PSTEP, ptsData = new Float32Array(PN * PN * 3);
+const bufPts = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, bufPts); gl.bufferData(gl.ARRAY_BUFFER, ptsData, gl.DYNAMIC_DRAW);
+function renderPoints(src) {
+  gl.viewport(0, 0, glc.width, glc.height);
+  gl.clearColor(0, 0, 0, 1); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+  gl.enable(gl.DEPTH_TEST);
+  let n = 0;
+  for (let j = 0; j < N; j += PSTEP) for (let i = 0; i < N; i += PSTEP) {
+    const k = idx(i, j); ptsData[n++] = pos[3 * k]; ptsData[n++] = pos[3 * k + 1]; ptsData[n++] = src[k];
+  }
+  gl.useProgram(pprog);
+  gl.uniformMatrix4fv(PU.mvp, false, MVP);
+  gl.uniform1f(PU.size, 2.6 * Math.min(window.devicePixelRatio || 1, 2) * 160 / st.dist);
+  gl.uniform1f(PU.h, H);
+  gl.bindBuffer(gl.ARRAY_BUFFER, bufPts); gl.bufferSubData(gl.ARRAY_BUFFER, 0, ptsData);
+  gl.enableVertexAttribArray(PA); gl.vertexAttribPointer(PA, 3, gl.FLOAT, false, 0, 0);
+  gl.drawArrays(gl.POINTS, 0, n / 3);
+  gl.disableVertexAttribArray(PA);
+}
+
+// Step 3: the mesh's edges along every 2nd row and column, drawn over the shaded triangles
+const wireIdx = [];
+for (let j = 0; j < N; j += 2) for (let i = 0; i < N - 1; i++) wireIdx.push(idx(i, j), idx(i + 1, j));
+for (let i = 0; i < N; i += 2) for (let j = 0; j < N - 1; j++) wireIdx.push(idx(i, j), idx(i, j + 1));
+const bufWire = gl.createBuffer(); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, bufWire); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(wireIdx), gl.STATIC_DRAW);
+function drawWire() {
+  gl.useProgram(lprog);
+  gl.uniformMatrix4fv(LU.mvp, false, MVP);
+  gl.uniform2f(LU.off, 0, 0);
+  gl.uniform4f(LU.color, .2, .45, .65, 1);
+  gl.bindBuffer(gl.ARRAY_BUFFER, bufPos);
+  gl.enableVertexAttribArray(LA); gl.vertexAttribPointer(LA, 3, gl.FLOAT, false, 0, 0);
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, bufWire);
+  gl.drawElements(gl.LINES, wireIdx.length, gl.UNSIGNED_SHORT, 0);
+  gl.disableVertexAttribArray(LA);
+}
+
+// ---------------------------------------------------------------- clouds: a procedural cloud layer over the table
+// Adapted from the original cloudShader.frag: Perlin's noise summed as turbulence, gathering from the middle of the table
+// outward as the sky clouds over. Here it is a stack of thin horizontal slices, so it has depth and turns with the table.
+// The broad shape (where the cloud is) is a small CPU map, cloudMap, that the rain also reads, so drops only fall from
+// under the cloud. The shader adds the fine, billowing detail on top.
+const CB = H + 13, CT = 7, CSL = 12, CM = 64, CEXT = W * .62;   // cloud base, thickness, slices, map size, half-width
+const cloudMap = new Float32Array(CM * CM), cloudPix = new Uint8Array(CM * CM);
+let cloudCov = 0;
+function updateCloud(cov, t) {
+  for (let j = 0; j < CM; j++) for (let i = 0; i < CM; i++) {
+    const x = (i / (CM - 1) * 2 - 1) * CEXT, y = (j / (CM - 1) * 2 - 1) * CEXT;
+    const r = Math.hypot(x / (W * .55), y / (W * .55));
+    const v = fbm(x * .03 + t * .035, y * .03 - t * .012) * .85 + .5 * (1 - r);   // noise, weighted to the middle (like the original)
+    const th = 1.15 - .62 * cov;
+    const m = smooth(th, th + .22, v) * smooth(1.25, .95, r);
+    cloudMap[j * CM + i] = m; cloudPix[j * CM + i] = m * 255;
+  }
+  gl.bindTexture(gl.TEXTURE_2D, texCloud);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE, CM, CM, 0, gl.LUMINANCE, gl.UNSIGNED_BYTE, cloudPix);
+}
+function cloudAt(x, y) {
+  const i = clamp(Math.round((x / CEXT + 1) * .5 * (CM - 1)), 0, CM - 1), j = clamp(Math.round((y / CEXT + 1) * .5 * (CM - 1)), 0, CM - 1);
+  return cloudMap[j * CM + i];
+}
+const texCloud = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, texCloud);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+const CVS = `attribute vec2 position; uniform mat4 uMVP; uniform float uZ, uExt; varying vec2 vXY;
+void main(){ vXY = position * uExt; gl_Position = uMVP * vec4(vXY, uZ, 1.); }`;
+const CFS = `precision mediump float;
+uniform sampler2D uMap; uniform highp float uExt; uniform float uSlice, uT, uCov; varying vec2 vXY;
+float noise(vec3 v) {
+  vec4 r[2];
+  const mat4 E = mat4(0.,0.,0.,0., 0.,.5,.5,0., .5,0.,.5,0., .5,.5,0.,0.);
+  for (int j = 0 ; j < 2 ; j++)
+  for (int i = 0 ; i < 4 ; i++) {
+    vec3 p = .60*v + E[i].xyz, C = floor(p), P = p - C-.5, A = abs(P), D;
+    C += mod(C.x+C.y+C.z+float(j),2.) * step(max(A.yzx,A.zxy),A)*sign(P);
+    D  = 314.1*sin(59.2*float(i+4*j) + 65.3*C + 58.9*C.yzx + 79.3*C.zxy);
+    r[j][i] = dot(P=p-C-.5,fract(D)-.5) * pow(max(0.,1.-2.*dot(P,P)),4.);
+  }
+  return 6.50 * (r[0].x+r[0].y+r[0].z+r[0].w+r[1].x+r[1].y+r[1].z+r[1].w);
+}
+float turbulence(vec3 p) {            // the original's turbulence, 4 octaves instead of 10
+  float t = 0., f = 1.;
+  for (int i = 0; i < 4; i++) { t += abs(noise(f * p)) / f; f *= 2.; }
+  return t;
+}
+void main() {
+  float m = texture2D(uMap, vXY / (2. * uExt) + .5).r;
+  if (m < .01) discard;
+  vec3 p = vec3(vXY * .09, uSlice * 1.2) + vec3(.4, .1, .25) * uT;
+  float tb = turbulence(p);
+  float h = m * (.75 + .9 * tb);                 // how thick the cloud is here
+  float s = abs(uSlice - .35) / .65;             // flatter base, rounded top
+  float d = smoothstep(s, s + .3, h);
+  if (d < .01) discard;
+  vec3 c = mix(vec3(.42, .46, .54), vec3(.96, .97, 1.), smoothstep(.0, .9, uSlice + .25 * tb));  // dark underside, bright top
+  gl_FragColor = vec4(c, d * .11 * uCov);
+}`;
+const cprog = program(CVS, CFS);
+const CU = {}; for (const n of ["uMVP", "uZ", "uExt", "uMap", "uSlice", "uT", "uCov"]) CU[n] = gl.getUniformLocation(cprog, n);
+const CA = gl.getAttribLocation(cprog, "position");
+const bufCloud = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, bufCloud);
+gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+function drawCloud(t) {
+  if (cloudCov <= .01) return;
+  gl.useProgram(cprog);
+  gl.uniformMatrix4fv(CU.uMVP, false, MVP); gl.uniform1f(CU.uExt, CEXT); gl.uniform1f(CU.uT, t); gl.uniform1f(CU.uCov, cloudCov);
+  gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, texCloud); gl.uniform1i(CU.uMap, 2);
+  gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA); gl.depthMask(false);
+  gl.bindBuffer(gl.ARRAY_BUFFER, bufCloud); gl.enableVertexAttribArray(CA); gl.vertexAttribPointer(CA, 2, gl.FLOAT, false, 0, 0);
+  const above = EYE[2] > CB + CT / 2;            // draw the slices back to front
+  for (let n = 0; n < CSL; n++) {
+    const k = above ? n : CSL - 1 - n, f = k / (CSL - 1);
+    gl.uniform1f(CU.uZ, CB + f * CT); gl.uniform1f(CU.uSlice, f);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+  }
+  gl.disableVertexAttribArray(CA);
+  gl.depthMask(true); gl.disable(gl.BLEND); gl.activeTexture(gl.TEXTURE0);
+}
+
+// ---------------------------------------------------------------- rain: drops in the table's own 3D space
+// Each drop is a short line falling straight down (with a little drift) over the table. When it reaches the sand it
+// leaves a small splash and starts again from the sky. It is depth-tested, so hills hide the drops behind them, and it
+// turns with the table when you orbit.
+const RMAX = 700, RTOP = CB + 1.5, RLEN = 2.1, RSPEED = 30;
+const rdx = new Float32Array(RMAX), rdy = new Float32Array(RMAX), rdz = new Float32Array(RMAX), rdv = new Float32Array(RMAX);
+function dropReset(k) {                     // a new drop starts inside the cloud, more often where it is thick
+  for (let n = 0; n < 6; n++) {
+    const x = (Math.random() - .5) * (W - 2), y = (Math.random() - .5) * (W - 2);
+    if (Math.random() < cloudAt(x, y) * 1.4) {
+      rdx[k] = x; rdy[k] = y; rdz[k] = RTOP + Math.random() * 2.5; rdv[k] = RSPEED * (.85 + Math.random() * .3); return;
+    }
+  }
+  rdv[k] = 0;                                  // no cloud found this time: wait and try next frame
+}
+for (let k = 0; k < RMAX; k++) rdv[k] = 0;
+const SPMAX = 260, spl = [];                       // splashes: {x, y, z, age}
+const rainData = new Float32Array((RMAX + SPMAX * 4) * 6);
+const bufRain = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, bufRain); gl.bufferData(gl.ARRAY_BUFFER, rainData, gl.DYNAMIC_DRAW);
+function drawRain(amount, dt) {
+  if (amount <= .01) { spl.length = 0; return; }
+  const live = Math.round(RMAX * .5 * amount), drift = .12;     // about half the drops there were before
+  let n = 0;
+  for (let k = 0; k < live; k++) {
+    if (rdv[k] === 0) { if (Math.random() < .08) dropReset(k); continue; }
+    rdz[k] -= rdv[k] * dt; rdx[k] += drift * rdv[k] * dt;
+    const g = sampleH(rdx[k], rdy[k]);
+    if (rdz[k] <= g || Math.abs(rdx[k]) > W / 2 - .5) {
+      if (rdz[k] <= g && spl.length < SPMAX && Math.abs(rdx[k]) < W / 2 - .5) spl.push({ x: rdx[k], y: rdy[k], z: g + .05, age: 0 });
+      dropReset(k); continue;
+    }
+    const top = Math.min(RLEN, Math.max(0, RTOP + 2.5 - rdz[k]));
+    rainData.set([rdx[k], rdy[k], rdz[k], rdx[k] - drift * top, rdy[k], rdz[k] + top], n); n += 6;
+  }
+  const nDrops = n / 3;
+  for (let i = spl.length - 1; i >= 0; i--) {     // a splash: four tiny strokes that spread and fade in a third of a second
+    const s = spl[i]; s.age += dt;
+    if (s.age > .3) { spl.splice(i, 1); continue; }
+    const r = .2 + 1.6 * s.age, u = .25 + 1.2 * s.age;
+    for (const [ax, ay] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      rainData.set([s.x + ax * r, s.y + ay * r, s.z + u * .4, s.x + ax * (r + .25), s.y + ay * (r + .25), s.z + u], n); n += 6;
+    }
+  }
+  gl.useProgram(lprog);
+  gl.uniformMatrix4fv(LU.mvp, false, MVP);
+  gl.uniform2f(LU.off, 0, 0);
+  gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA); gl.depthMask(false);
+  gl.bindBuffer(gl.ARRAY_BUFFER, bufRain); gl.bufferSubData(gl.ARRAY_BUFFER, 0, rainData.subarray(0, n));
+  gl.enableVertexAttribArray(LA); gl.vertexAttribPointer(LA, 3, gl.FLOAT, false, 0, 0);
+  // GL lines are 1 px, so each drop is drawn three times side by side (sub-pixel shifts) to read about 2 px wide
+  gl.uniform4f(LU.color, .75, .87, 1, .17 * amount);
+  const px = 2 / glc.width, o = .7 * Math.min(window.devicePixelRatio || 1, 2);
+  for (const ox of [-o, 0, o]) { gl.uniform2f(LU.off, ox * px, 0); gl.drawArrays(gl.LINES, 0, nDrops); }
+  gl.uniform2f(LU.off, 0, 0);
+  gl.uniform4f(LU.color, .8, .9, 1, .3 * amount);
+  gl.drawArrays(gl.LINES, nDrops, n / 3 - nDrops);
+  gl.disableVertexAttribArray(LA);
+  gl.depthMask(true); gl.disable(gl.BLEND);
+}
+
+// ---------------------------------------------------------------- loop
+let last = performance.now(), frame = 0;
+function tick(now) {
+  const dt = Math.min(.05, (now - last) / 1000); last = now; frame++;
+  const t = (now - st.t0) / 1000;
+  resize(); camera();
+  const P = st.pointer;
+  if (!P.orbit && P.inside) P.hit = pick(P.x, P.y);
+  if (P.down && !P.orbit && P.hit) applyBrush(P.hit.i, P.hit.j, P.dig ? "dig" : "add");
+  if (st.slump) relax();
+  sense();
+  buildMesh();
+
+  let waterSrc = wc, rainAlpha = 0;
+  if (st.mode === "museum") {
+    // the museum table's sun and rain cycle: cloudAmount = clamp(2.5 + 5 sin(speed t), 0, 5)
+    // the clock starts each time the museum version opens, just before the clouds roll in, so rain and drainage show within a couple of seconds
+    const mt = (now - st.museumT0) / 1000 + 13.3;
+    st.cloud = clamp(2.5 + 5 * Math.sin(.22 * mt), 0, 5);
+    rainAlpha = clamp((2.5 - st.cloud) / 1.5, 0, 1);
+    if (sizeNetwork() || frame % 30 === 1 || !chains.length) buildNetwork();
+    drawNetwork(t);
+    waterSrc = nc;
+  } else if (st.mode === "trails") {
+    st.cloud = 1;
+    rainAlpha = .8;
+    drops(40, spawnRain, 4.4, .045);
+  } else if (st.mode === "seasons") {
+    seasons(dt, t);
+  }
+  if (st.mode === "raw" || st.mode === "filtered") renderPoints(st.mode === "raw" ? meas : hgt);
+  else {
+    render(waterSrc);
+    if (st.mode === "mesh") drawWire();
+    if (st.mode === "slope" || st.mode === "wind") drawArrows(st.mode, t);
+    // clouds gather before the rain starts and clear after it stops
+    const cov = st.mode === "museum" ? clamp((4.2 - st.cloud) / 2.4, 0, 1) : st.mode === "trails" ? 1 : 0;
+    cloudCov += (cov - cloudCov) * Math.min(1, dt * 1.5);
+    if (cloudCov > .01 && frame % 3 === 0) updateCloud(cloudCov, t);
+    drawRain(rainAlpha, dt);
+    drawCloud(t);
+  }
+  overlay();
+  requestAnimationFrame(tick);
+}
+
+// ---------------------------------------------------------------- UI
+const TEXT = {
+  raw: ["1 · Raw depth", `<p>This is all a depth camera gives us: a grid of distances, about 30 times a second. Each dot is one sample, turned into a height above the table.</p><p>The samples jitter from frame to frame, and now and then one returns no depth at all and drops to the table.</p><p class="muted">Pour some sand and watch the dots follow, noise and all.</p>`],
+  filtered: ["2 · Filtered", `<p>The same dots, after cleaning them up over time and over space.</p><svg class="dg" viewBox="0 0 288 120" role="img" aria-label="A jagged raw depth profile with dropouts, and the smooth filtered profile on top of it"><line x1="0" y1="104" x2="288" y2="104" stroke="#1d2125" stroke-width="1.5"/><polyline points="4.0,89.4 7.5,102.4 11.1,108.0 14.6,112.6 18.2,108.7 21.7,98.9 25.3,98.4 28.8,104.7 32.4,102.5 35.9,104.2 39.4,108.7 43.0,91.3 46.5,95.8 50.1,79.4 53.6,98.2 57.2,90.4 60.7,79.0 64.3,81.2 67.8,82.7 71.3,72.8 74.9,58.3 78.4,48.9 82.0,104.0 85.5,29.3 89.1,22.8 92.6,21.9 96.2,20.0 99.7,19.7 103.2,14.0 106.8,104.0 110.3,22.3 113.9,24.7 117.4,36.2 121.0,50.7 124.5,55.6 128.1,51.5 131.6,61.2 135.1,60.6 138.7,77.3 142.2,77.5 145.8,79.1 149.3,85.0 152.9,98.6 156.4,97.7 159.9,96.6 163.5,104.1 167.0,93.2 170.6,87.4 174.1,94.3 177.7,73.3 181.2,83.0 184.8,76.1 188.3,69.5 191.8,65.9 195.4,52.3 198.9,50.1 202.5,36.1 206.0,42.3 209.6,104.0 213.1,52.8 216.7,66.0 220.2,104.0 223.7,75.4 227.3,70.1 230.8,83.1 234.4,77.2 237.9,87.9 241.5,90.8 245.0,97.5 248.6,99.4 252.1,97.7 255.6,96.7 259.2,108.1 262.7,100.4 266.3,86.2 269.8,104.5 273.4,105.7 276.9,108.6 280.5,113.7 284.0,96.0" fill="none" stroke="#868d93" stroke-width="1.2"/><polyline points="4.0,103.1 7.5,103.2 11.1,103.3 14.6,103.3 18.2,103.2 21.7,103.0 25.3,102.8 28.8,102.4 32.4,101.9 35.9,101.4 39.4,100.6 43.0,99.5 46.5,97.9 50.1,95.4 53.6,92.2 57.2,88.4 60.7,84.0 64.3,78.9 67.8,73.1 71.3,66.3 74.9,58.7 78.4,50.8 82.0,43.1 85.5,36.2 89.1,30.5 92.6,26.0 96.2,22.7 99.7,20.8 103.2,20.7 106.8,22.4 110.3,25.8 113.9,30.7 117.4,36.6 121.0,43.2 124.5,50.0 128.1,56.9 131.6,63.6 135.1,70.3 138.7,76.7 142.2,82.4 145.8,87.1 149.3,90.7 152.9,93.3 156.4,94.9 159.9,95.8 163.5,95.9 167.0,94.9 170.6,92.7 174.1,89.2 177.7,84.6 181.2,79.1 184.8,73.2 188.3,67.1 191.8,61.1 195.4,55.7 198.9,51.4 202.5,48.8 206.0,48.5 209.6,50.2 213.1,53.5 216.7,58.1 220.2,63.5 223.7,69.6 227.3,75.8 230.8,81.6 234.4,86.7 237.9,91.2 241.5,95.0 245.0,98.1 248.6,100.4 252.1,101.9 255.6,102.7 259.2,102.9 262.7,102.9 266.3,103.1 269.8,103.6 273.4,104.1 276.9,104.5 280.5,104.5 284.0,104.2" fill="none" stroke="#7cc0ea" stroke-width="3" stroke-linejoin="round"/></svg><p class="key"><b style="color:#868d93">grey</b>: one raw frame · <b style="color:#7cc0ea">blue</b>: after filtering</p><h3>Over time</h3><p>Each point keeps a running average. A new reading only nudges the old value, so the flicker cancels out.</p><code>h = 0.9 * h + 0.1 * depth;</code><h3>Over space</h3><p>A 3 × 3 blur, then each point is averaged with its neighbors, along x and then along y, 7 times.</p><code>h[i] = (h[i-1] + h[i+1]
+        + 5 * h[i]) / 7;</code><p>The weight 5 keeps each point mostly itself. More passes means smoother, but softer edges.</p><p class="muted">Press 1 and 2 to flip between raw and filtered.</p>`],
+  mesh: ["3 · The mesh", `<p>Connect each sample to its neighbors, two triangles per grid cell, and the dots become a surface.</p><p>The grid never changes. Every frame, only the heights move. This is the height-map mesh from class.</p><p>From the triangles we get a normal at every point, and the next steps all start from there.</p><p class="muted">The blue lines are every second row and column of the grid.</p>`],
+  museum: ["5 · The museum version", `<p>Height bands and contour lines, as on the table at the MIT Museum. Every so often it rains.</p><p>The dotted lines are the drainage network, and no water is simulated to draw them.</p><h3>How the lines are found</h3><svg class="dg" viewBox="0 0 288 150" role="img" aria-label="Left: the downhill flow vector lies within 60 degrees of both right and down. Right: so the node links to its lower-right neighbor out of eight."><path d="M72,70 L99.0,23.2 A54,54 0 0 1 99.0,116.8 Z" fill="rgba(124,192,234,.24)"/><path d="M72,70 L118.8,97.0 A54,54 0 0 1 25.2,97.0 Z" fill="rgba(124,192,234,.24)"/><line x1="72" y1="70" x2="118.0" y2="70.0" stroke="#5a6167" stroke-width="2" stroke-linecap="round"/><path d="M118.0,70.0 L111.7,73.0 L111.7,67.0 Z" fill="#5a6167"/><line x1="72" y1="70" x2="72.0" y2="116.0" stroke="#5a6167" stroke-width="2" stroke-linecap="round"/><path d="M72.0,116.0 L69.0,109.7 L75.0,109.7 Z" fill="#5a6167"/><line x1="72" y1="70" x2="26.0" y2="70.0" stroke="#5a6167" stroke-width="2" stroke-linecap="round"/><path d="M26.0,70.0 L32.3,67.0 L32.3,73.0 Z" fill="#5a6167"/><line x1="72" y1="70" x2="72.0" y2="24.0" stroke="#5a6167" stroke-width="2" stroke-linecap="round"/><path d="M72.0,24.0 L75.0,30.3 L69.0,30.3 Z" fill="#5a6167"/><line x1="72" y1="70" x2="117.9" y2="102.1" stroke="#7cc0ea" stroke-width="3.5" stroke-linecap="round"/><path d="M117.9,102.1 L109.0,100.6 L113.4,94.3 Z" fill="#7cc0ea"/><circle cx="72" cy="70" r="3.5" fill="#e8ecef"/><text x="128" y="62" fill="#7cc0ea" font-size="12" font-family="Source Sans 3,Arial,sans-serif">downhill</text><text x="72" y="144" fill="#868d93" font-size="11.5" text-anchor="middle" font-family="Source Sans 3,Arial,sans-serif">within 60° of → and of ↓</text><rect x="186" y="26" width="26" height="26" rx="3" fill="#15181b"/><rect x="186" y="56" width="26" height="26" rx="3" fill="#15181b"/><rect x="186" y="86" width="26" height="26" rx="3" fill="#15181b"/><rect x="216" y="26" width="26" height="26" rx="3" fill="#15181b"/><rect x="216" y="56" width="26" height="26" rx="3" fill="#e8ecef"/><rect x="216" y="86" width="26" height="26" rx="3" fill="#15181b"/><rect x="246" y="26" width="26" height="26" rx="3" fill="#15181b"/><rect x="246" y="56" width="26" height="26" rx="3" fill="#15181b"/><rect x="246" y="86" width="26" height="26" rx="3" fill="#3a8cc2"/><line x1="234.0" y1="74.0" x2="251.0" y2="91.0" stroke="#7cc0ea" stroke-width="2.5"/><path d="M255.0,95.0 L245.0,92.0 L252.0,85.0 Z" fill="#7cc0ea"/><text x="229" y="144" fill="#868d93" font-size="11.5" text-anchor="middle" font-family="Source Sans 3,Arial,sans-serif">link to 1 of 8 neighbors</text></svg><p>A 40 × 40 grid of points sits over the sand. At each point, take the downhill vector <i>v</i>.</p><p>Compare <i>v</i> with up, down, left and right. Any direction within 60° counts (a dot product over 0.5), so a point can step to any of its 8 neighbors.</p><code>if (dot(v, right) &gt; 0.5) col += 1;
+if (dot(v, left)  &gt; 0.5) col -= 1;
+if (dot(v, down)  &gt; 0.5) row += 1;
+if (dot(v, up)    &gt; 0.5) row -= 1;</code><p>Link the two points if they flow the same way and the neighbor is lower. Chains of links are the rivers. The color shows how steep each step is.</p><p class="muted">The network is rebuilt twice a second. Pour a ridge across a valley and watch the paths reroute.</p>`],
+  trails: ["6 · Water trails", `<p>Raindrops land everywhere and roll down the slope, leaving trails that fade.</p><p>Where many trails meet, they draw the rivers.</p><p class="muted">Dig a channel and the water finds it.</p>`],
+  slope: ["4 · Slope vectors", `<p>Colors show height. Each arrow is the downhill direction at that spot: gravity minus the part of it pushing into the surface, <i>g − (N·g)N</i>.</p><p>Longer arrows mean steeper ground. The arrows vanish on flat ground and on the very tops of the hills.</p><p class="muted">This is the vector water follows, and the one that pulls the petals and leaves downhill.</p>`],
+  wind: ["4 · Wind field", `<p>Colors show height. The arrows are the wind the petals and leaves feel: one prevailing wind that slowly turns, with gusts rolling through.</p><p>Arrow direction is where the air pushes; length is how hard.</p><p class="muted">Watch the gusts travel across the table in waves.</p>`],
+  seasons: ["7 · Seasons", `<p>The seasons turn on their own, sweeping across the table.</p><p><b>Winter</b> snow builds down from the peaks. In <b>spring</b> the ice melts back toward the peaks, with a brief rush of meltwater at the start, and petals float off the lower slopes. In <b>autumn</b> leaves float off the same slopes.</p><p class="muted">Petals and leaves are light: the wind carries them across the table while gravity pulls them downhill, and they come to rest in the valleys and against the hills.</p>`],
+};
+const modesEl = document.getElementById("modes"), seasonsEl = document.getElementById("seasons");
+function pressedSeason() { seasonsEl.querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", String(+b.dataset.season === st.to))); }
+const vecsEl = document.getElementById("vecs");
+const STEPS = ["raw", "filtered", "mesh", "slope", "museum", "trails", "seasons"];
+function showText(k) {
+  document.getElementById("mTitle").textContent = TEXT[k][0];
+  document.getElementById("mBody").innerHTML = TEXT[k][1];
+  document.querySelector(".walk").scrollTop = 0;
+}
+function setMode(m) {
+  st.mode = m;
+  const vec = m === "slope" || m === "wind";
+  modesEl.querySelectorAll("button[data-mode]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.mode === m || (b.dataset.group === "vec" && vec))));
+  vecsEl.hidden = !vec;
+  vecsEl.querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.vec === m)));
+  seasonsEl.hidden = m !== "seasons";
+  showText(m);
+  clearWater(); petals.n = leaves.n = 0;
+  if (m === "museum") st.museumT0 = performance.now();
+  if (m === "seasons") {                       // start at the end of winter: snowy peaks, then the spring melt begins
+    st.from = 2; st.to = 0; st.prog = 0; st.seasonClock = 0; st.snowF = 1;
+    pressedSeason();
+  }
+}
+modesEl.addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return;
+  if (b.dataset.mode) {
+    const m = b.dataset.group === "vec" && (st.mode === "slope" || st.mode === "wind") ? st.mode : b.dataset.mode;
+    if (m === st.mode) showText(st.mode); else setMode(m);
+  }
+  else if (b.dataset.vec) setMode(b.dataset.vec);
+  else if (b.dataset.season) goSeason(+b.dataset.season);
+});
+document.addEventListener("keydown", e => {             // 1-7 step through the walkthrough; 4 again flips slope / wind
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  const n = +e.key; if (!(n >= 1 && n <= 7)) return;
+  let m = STEPS[n - 1];
+  if (n === 4 && (st.mode === "slope" || st.mode === "wind")) m = st.mode === "slope" ? "wind" : "slope";
+  if (m !== st.mode) setMode(m);
+});
+
+glc.addEventListener("contextmenu", e => e.preventDefault());
+glc.addEventListener("pointerdown", e => {
+  glc.setPointerCapture(e.pointerId);
+  const P = st.pointer; P.down = true; P.x = P.lx = e.clientX; P.y = P.ly = e.clientY; P.inside = true;
+  P.hit = pick(P.x, P.y);
+  P.orbit = e.button === 1 || e.button === 2 || e.altKey || !P.hit;   // drag the background (or right-drag) to orbit
+  P.dig = !P.orbit && e.shiftKey;
+  glc.classList.toggle("orbiting", P.orbit);
+});
+glc.addEventListener("pointermove", e => {
+  const P = st.pointer; P.inside = true;
+  if (P.down && P.orbit) { st.yaw -= (e.clientX - P.lx) * .008; st.pitch = clamp(st.pitch + (e.clientY - P.ly) * .006, .15, 1.45); }
+  P.x = e.clientX; P.y = e.clientY; P.lx = e.clientX; P.ly = e.clientY;
+  if (P.down && !P.orbit) P.dig = e.shiftKey || P.dig;
+});
+const up = () => { const P = st.pointer; P.down = false; P.orbit = false; P.dig = false; glc.classList.remove("orbiting"); };
+glc.addEventListener("pointerup", up); glc.addEventListener("pointercancel", up);
+glc.addEventListener("pointerleave", () => { st.pointer.inside = false; st.pointer.hit = null; });
+glc.addEventListener("wheel", e => { if (EMBED) return; e.preventDefault(); st.dist = clamp(st.dist * (1 + Math.sign(e.deltaY) * .08), 70, 280); }, { passive: false });
+
+// ---------------------------------------------------------------- go
+const SHAPE = /[?&]shape\b/.test(location.search);   // ?shape: start from a flat table in the museum version, to sculpt a new default
+preset(SHAPE ? "flat" : "custom");
+setMode(EMBED || SHAPE ? "museum" : "raw");
+if (EMBED) st.dist = 142;                         // framed so the whole table fits the small gallery frame
+sense(); buildMesh();
+window.__sand = { st, setMode, showText, goSeason, petals, leaves, sand, preset };
+requestAnimationFrame(tick);
+})();
+</script>
