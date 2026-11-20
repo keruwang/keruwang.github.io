@@ -115,8 +115,6 @@ function gl_start(canvas, vertexShader, fragmentShader) {
          gl.depthFunc(gl.GEQUAL);                                               // nearest object at each pixel.
          gl.clearDepth(-1.0);
 
-         gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());                     // Create a square as a triangle strip
-
          let aPos = gl.getAttribLocation(program, 'aPos');                      // Set aPos attribute for each vertex.
          let aNor = gl.getAttribLocation(program, 'aNor');                      // Set aNor attribute for each vertex.
          let aUV  = gl.getAttribLocation(program, 'aUV' );                      // Set aUV  attribute for each vertex.
@@ -124,18 +122,29 @@ function gl_start(canvas, vertexShader, fragmentShader) {
          gl.enableVertexAttribArray(aNor);
          gl.enableVertexAttribArray(aUV );
          let bpe = Float32Array.BYTES_PER_ELEMENT;
-         gl.vertexAttribPointer(aPos, 3, gl.FLOAT, false, stride * bpe, 0      );
-         gl.vertexAttribPointer(aNor, 3, gl.FLOAT, false, stride * bpe, 3 * bpe);
-         gl.vertexAttribPointer(aUV , 2, gl.FLOAT, false, stride * bpe, 6 * bpe);
+         gl.pointAttributes = function () {                                     // Point the attributes into whichever
+            gl.vertexAttribPointer(aPos, 3, gl.FLOAT, false, stride * bpe, 0      );   // shape buffer is bound
+            gl.vertexAttribPointer(aNor, 3, gl.FLOAT, false, stride * bpe, 3 * bpe);   // (see drawShape).
+            gl.vertexAttribPointer(aUV , 2, gl.FLOAT, false, stride * bpe, 6 * bpe);
+         };
+         gl.boundShape = null;
       }
 
       canvas.setShaders(vertexShader, fragmentShader);                     // Initialize everything,
 
-      setInterval(function() {                                             // Start the animation loop.
+      // Draw on the browser's frame clock, about every 30 ms as before. Unlike setInterval, a frame is never
+      // queued behind one the GPU has not finished (Safari has no brake for that), drawing pauses while
+      // the page or frame is out of sight, and calling gl_start again replaces the old loop instead of adding one.
+      let loop = canvas._kwLoop = {}, last = -1e9;
+      requestAnimationFrame(function frame(now) {
+         if (canvas._kwLoop !== loop) return;
+         requestAnimationFrame(frame);
+         if (now - last < 28) return;
+         last = now;
          gl = canvas.gl;
          gl.clear(gl.DEPTH_BUFFER_BIT);
          animate();
-      }, 30);
+      });
 
    }, 100); // Wait 100 milliseconds after page has loaded before starting WebGL.
 }
@@ -364,7 +373,9 @@ for (let s = -1 ; s <= 1 ; s += 2) {  // Loop thru two faces for each axis
 // SEND A UNIFORM VALUE DOWN TO THE GPU.
 
 function setUniform(type, name, a, b, c, d, e, f) {
-   let loc = gl.getUniformLocation(gl.program, name);
+   // look each location up once per program: in Safari every lookup waits on the GPU process
+   let p = gl.program, locs = p._kwLocs || (p._kwLocs = {});
+   let loc = name in locs ? locs[name] : (locs[name] = gl.getUniformLocation(p, name));
    (gl['uniform' + type])(loc, a, b, c, d, e, f);
 }
 
@@ -383,13 +394,28 @@ let phong = (a,d,s,p,ta,tf) => [ a[0],a[1],a[2],0,  // AMBIENT COLOR
                                  tf===undefined ? 0 : tf, 0, 1 ]; // OPTIONAL TEXTURE FREQUENCY
 
 
-// SEND CURRENT MATRIX VALUE TO GPU, THEN DOWNLOAD AND DRAW THE SHAPE AS A TRIANGLE STRIP.
+// SEND CURRENT MATRIX VALUE TO GPU, THEN DRAW THE SHAPE AS A TRIANGLE STRIP.
+// Each shape is downloaded to the GPU once, into a buffer of its own, and only rebound after that
+// (shapes are built once and never changed). Downloading every shape again on every frame was
+// what made this piece crawl in Safari, where each download crosses into a separate GPU process.
 
+let shapeBuffers = new WeakMap();
 let drawShape = shape => {
    let m = matrix.getValue();
    setUniform('Matrix4fv', 'uMatF', false, m);
    setUniform('Matrix4fv', 'uMatI', false, invert(m));
-   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(shape), gl.STATIC_DRAW);
+   if (gl.boundShape !== shape) {
+      let buffer = shapeBuffers.get(shape);
+      if (! buffer) {
+         shapeBuffers.set(shape, buffer = gl.createBuffer());
+         gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(shape), gl.STATIC_DRAW);
+      }
+      else
+         gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+      gl.pointAttributes();
+      gl.boundShape = shape;
+   }
    gl.drawArrays(gl.TRIANGLE_STRIP, 0, shape.length / stride);
 }
 

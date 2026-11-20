@@ -89,15 +89,21 @@ function gl_start(canvas, vertexShader, fragmentShader) {           // START WEB
 
       canvas.setShaders(vertexShader, fragmentShader);                     // Initialize everything,
 
-      setInterval(function() {                                             // Start the animation loop.
+      // Draw on the browser's frame clock, about every 30 ms as before. Unlike setInterval, a frame is never
+      // queued behind one the GPU has not finished (Safari has no brake for that), drawing pauses while
+      // the page or frame is out of sight, and calling gl_start again replaces the old loop instead of adding one.
+      let loop = canvas._kwLoop = {}, last = -1e9;
+      requestAnimationFrame(function frame(now) {
+         if (canvas._kwLoop !== loop) return;
+         requestAnimationFrame(frame);
+         if (now - last < 28) return;
+         last = now;
          gl = canvas.gl;
          if (gl.startTime === undefined)                                            // First time through,
             gl.startTime = Date.now();                                              //    record the start time.
          animate(gl);
          gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);                                    // Render the square.
-
-         //console.log(getCanvasData(canvas));
-      }, 30);
+      });
 
    }, 100); // Wait 100 milliseconds after page has loaded before starting WebGL.
 }
@@ -108,7 +114,9 @@ function animate() { }
 
 let gl;
 function setUniform(type, name, a, b, c, d, e, f) {
-   let loc = gl.getUniformLocation(gl.program, name);
+   // look each location up once per program: in Safari every lookup waits on the GPU process
+   let p = gl.program, locs = p._kwLocs || (p._kwLocs = {});
+   let loc = name in locs ? locs[name] : (locs[name] = gl.getUniformLocation(p, name));
    (gl['uniform' + type])(loc, a, b, c, d, e, f);
 }
 
