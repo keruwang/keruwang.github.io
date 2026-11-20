@@ -507,3 +507,12 @@ footer {
     .profile-links { text-align: left; }
     .grid { grid-template-columns: 1fr; }
 }
+
+/* ---------- Project groups (Research / Prototypes, Demos & Exhibitions) ---------- */
+.group-title { font-size: 1.6rem; margin-top: 64px; }
+.legend + .group-title { margin-top: 0; }
+.group-note {
+    font-size: 15px;
+    color: var(--muted);
+    margin: 10px 0 28px;
+}
